@@ -53,6 +53,10 @@ export function createBot(deps: BotDeps): DispenserBot {
     await ctx.reply(reply.text, options(reply));
   });
   priv.on('message:text', async (ctx) => {
+    if (ctx.message.text.startsWith('/')) {
+      await ctx.reply(startReply(flow, ctx.from.id));
+      return;
+    }
     let outcome;
     try {
       outcome = await textReply(ctx.api, flow, ctx.from.id, ctx.message.text);
@@ -67,6 +71,8 @@ export function createBot(deps: BotDeps): DispenserBot {
       if (outcome.trippedEvent) await notifyAdmin(ctx.api, flow, tripMessage(outcome.trippedEvent));
     }
   });
+  priv.on('message', (ctx) => ctx.reply(startReply(flow, ctx.from.id)));
+  bot.on('callback_query', (ctx) => ctx.answerCallbackQuery());
 
   bot.catch((err) => {
     deps.log.error('update failed', {
