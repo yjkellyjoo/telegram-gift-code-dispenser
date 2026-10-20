@@ -1,6 +1,7 @@
 import { Api } from 'grammy';
 import { errorFields } from '../log.js';
 import { DatabaseError, openDatabase, type Db } from '../store/db.js';
+import { eventCreate } from './commands/event.js';
 import { init } from './commands/init.js';
 import { status } from './commands/status.js';
 import type { CliDeps, Command, CommandEnv } from './env.js';
@@ -17,6 +18,7 @@ export interface CliResult {
 const COMMANDS: Record<string, Command> = {
   init,
   status,
+  'event create': eventCreate,
 };
 
 const USAGE = `usage: dispenser <command>
