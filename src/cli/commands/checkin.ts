@@ -21,7 +21,7 @@ export async function checkinSend(env: CommandEnv): Promise<void> {
   const pending = claimedCodes(db, event.id).filter((code) => code.checkinStatus === null);
   for (const code of pending) {
     const now = env.deps.clock.now();
-    markCheckinSent(db, code.id, now);
+    if (!markCheckinSent(db, code.id, now)) continue;
     try {
       await env.api().sendMessage(code.claimedBy, checkinText(event.title, code.claimedAt, now), {
         reply_markup: CHECKIN_KEYBOARD,

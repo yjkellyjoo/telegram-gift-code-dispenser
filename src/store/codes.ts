@@ -111,8 +111,13 @@ export function claimedCodes(db: Db, eventId: number): ClaimedCode[] {
     .all(eventId) as ClaimedCode[];
 }
 
-export function markCheckinSent(db: Db, codeId: number, now: number): void {
-  db.prepare("UPDATE codes SET checkin_status = 'sent', checkin_sent_at = ? WHERE id = ?").run(now, codeId);
+/** Marks the check-in as sent unless another run already did. Returns true when this call claimed it. */
+export function markCheckinSent(db: Db, codeId: number, now: number): boolean {
+  return (
+    db
+      .prepare("UPDATE codes SET checkin_status = 'sent', checkin_sent_at = ? WHERE id = ? AND checkin_status IS NULL")
+      .run(now, codeId).changes === 1
+  );
 }
 
 export function setCheckinStatus(db: Db, codeId: number, status: CheckinStatus): void {

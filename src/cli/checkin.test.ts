@@ -48,4 +48,10 @@ describe('dispenser checkin send', () => {
     expect((await h.cli(['checkin', 'send'])).stdout).toBe('sent 1 · unreachable 1 · failed 1\n');
     expect((await h.cli(['checkin', 'send'])).stdout).toBe('sent 0 · unreachable 0 · failed 0\n');
   });
+
+  test('two overlapping runs still send each claimant one message', async () => {
+    h.clock.set('2026-11-21T12:00:00Z');
+    await Promise.all([h.cli(['checkin', 'send']), h.cli(['checkin', 'send'])]);
+    expect(h.telegram.sent.filter((s) => s.text.startsWith('Hi!'))).toHaveLength(3);
+  });
 });
