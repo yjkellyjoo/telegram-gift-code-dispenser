@@ -1,0 +1,4 @@
+# better-sqlite3 ships prebuilt binaries (linux-arm64 included) and loads them first,
+# so its node-gyp build script stays off: no compiler in the image.
+allowBuilds:
+  better-sqlite3: false
