@@ -82,3 +82,16 @@ export function countClaimsSince(db: Db, eventId: number, since: number): number
   };
   return row.n;
 }
+
+export function recentClaims(
+  db: Db,
+  eventId: number,
+  limit: number,
+): Array<{ claimedBy: number; claimedAt: number; address: string }> {
+  return db
+    .prepare(
+      `SELECT claimed_by AS claimedBy, claimed_at AS claimedAt, address FROM codes
+       WHERE event_id = ? AND claimed_by IS NOT NULL ORDER BY claimed_at DESC, id DESC LIMIT ?`,
+    )
+    .all(eventId, limit) as Array<{ claimedBy: number; claimedAt: number; address: string }>;
+}

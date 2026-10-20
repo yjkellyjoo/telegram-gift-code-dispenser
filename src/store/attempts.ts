@@ -47,3 +47,13 @@ export function resetFailures(db: Db, eventId: number, userId: number): boolean 
       .changes > 0
   );
 }
+
+export function lockedOutAccounts(db: Db, eventId: number, maxAttempts: number): number[] {
+  return (
+    db
+      .prepare(
+        'SELECT telegram_user_id AS id FROM attempts WHERE event_id = ? AND failures >= ? ORDER BY telegram_user_id',
+      )
+      .all(eventId, maxAttempts) as Array<{ id: number }>
+  ).map((row) => row.id);
+}
