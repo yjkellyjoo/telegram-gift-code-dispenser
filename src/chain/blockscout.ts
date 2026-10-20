@@ -48,7 +48,7 @@ export function createBlockscout(options: BlockscoutOptions): Blockscout {
         await options.sleep(retryDelay(response));
         continue;
       }
-      if (!response.ok) throw new BlockscoutError(`Blockscout answered ${response.status}`);
+      if (!response.ok) throw new BlockscoutError(`Blockscout answered ${response.status}; try again later`);
       return (await response.json()) as ApiPage;
     }
   }
@@ -68,6 +68,11 @@ export function createBlockscout(options: BlockscoutOptions): Blockscout {
         }
         const oldest = body.items.at(-1);
         params = oldest !== undefined && Date.parse(oldest.timestamp) > since ? body.next_page_params : null;
+      }
+      if (params !== null) {
+        throw new BlockscoutError(
+          `an address has more than ${MAX_PAGES} pages of transactions, so the counts would be incomplete`,
+        );
       }
       return found;
     },

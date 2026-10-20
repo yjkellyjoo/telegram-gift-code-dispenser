@@ -85,4 +85,16 @@ describe('dispenser stats', () => {
     await h.say(ALICE, PASSPHRASE);
     expect((await h.cli(['stats'])).stdout).toMatch(/^Bot       tried passphrase 2 · claimed 1 · locked out 1$/m);
   });
+
+  test('fails rather than undercount when an address has more pages than stats reads', async () => {
+    const paged = new BlockscoutFake(1);
+    h.fetch = paged.fetch;
+    for (let i = 0; i < 21; i += 1) {
+      paged.add({ from: ADDRESS_1, to: SOMEONE, timestamp: `2026-11-15T09:00:${String(i).padStart(2, '0')}.000000Z` });
+    }
+    const result = await h.cli(['stats']);
+    expect(result.code).toBe(1);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toBe('error: an address has more than 20 pages of transactions, so the counts would be incomplete\n');
+  });
 });

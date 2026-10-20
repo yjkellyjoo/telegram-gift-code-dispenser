@@ -26,7 +26,7 @@ export async function stats(env: CommandEnv): Promise<void> {
     try {
       txs = await chain.outgoingTransactions(claim.address, claim.claimedAt);
     } catch (err) {
-      if (err instanceof BlockscoutError) throw new CliError(`${err.message}; try again later`);
+      if (err instanceof BlockscoutError) throw new CliError(err.message);
       throw err;
     }
     const result = milestones(txs, claim.claimedAt);
