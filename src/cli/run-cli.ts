@@ -1,6 +1,7 @@
 import { Api } from 'grammy';
 import { errorFields } from '../log.js';
 import { DatabaseError, openDatabase, type Db } from '../store/db.js';
+import { pause, resume } from './commands/breaker.js';
 import { eventClose, eventCreate, eventEdit, eventPassphrase } from './commands/event.js';
 import { importCodes } from './commands/import.js';
 import { init } from './commands/init.js';
@@ -24,6 +25,8 @@ const COMMANDS: Record<string, Command> = {
   'event edit': eventEdit,
   'event passphrase': eventPassphrase,
   'event close': eventClose,
+  pause,
+  resume,
   import: importCodes,
   unlock,
 };

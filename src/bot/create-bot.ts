@@ -3,9 +3,9 @@ import type { Update, UserFromGetMe } from 'grammy/types';
 import type { Clock } from '../clock.js';
 import { errorFields, type Logger } from '../log.js';
 import { openDatabase } from '../store/db.js';
-import { myCodeReply, startReply, textReply } from './claim-flow.js';
+import { myCodeReply, notifyAdmin, startReply, textReply } from './claim-flow.js';
 import type { Flow, Reply } from './flow.js';
-import { msg } from './messages.js';
+import { msg, tripMessage } from './messages.js';
 import { createRateLimiter, DEFAULT_RATE_LIMIT, type RateLimit } from './rate-limit.js';
 
 export interface BotDeps {
@@ -61,7 +61,11 @@ export function createBot(deps: BotDeps): DispenserBot {
       await ctx.reply(msg.somethingWrong);
       return;
     }
-    await ctx.reply(outcome.reply.text, options(outcome.reply));
+    try {
+      await ctx.reply(outcome.reply.text, options(outcome.reply));
+    } finally {
+      if (outcome.trippedEvent) await notifyAdmin(ctx.api, flow, tripMessage(outcome.trippedEvent));
+    }
   });
 
   bot.catch((err) => {

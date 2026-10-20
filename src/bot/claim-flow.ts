@@ -47,6 +47,7 @@ export async function textReply(api: Api, flow: Flow, userId: number, text: stri
     return { reply: codeReply(event, { privateKey: existing.privateKey, address: existing.address }) };
   }
   if (eventState(event, clock.now()) !== 'open') return { reply: plain(msg.noEventOpen) };
+  if (event.pausedAt !== null) return { reply: plain(msg.paused) };
 
   let membership: Membership;
   try {
@@ -82,5 +83,20 @@ export async function textReply(api: Api, flow: Flow, userId: number, text: stri
       return { reply: plain(msg.noEventOpen) };
     case 'pool_empty':
       return { reply: plain(msg.allClaimed) };
+    case 'paused': {
+      if (!result.tripped) return { reply: plain(msg.paused) };
+      log.warn('breaker tripped', { user: userId });
+      const trippedEvent = getEvent(db);
+      return trippedEvent ? { reply: plain(msg.paused), trippedEvent } : { reply: plain(msg.paused) };
+    }
+  }
+}
+
+/** Admin messages are plain text, so a group title cannot inject formatting. Failures are only logged. */
+export async function notifyAdmin(api: Api, flow: Flow, text: string): Promise<void> {
+  try {
+    await api.sendMessage(flow.adminUserId, text);
+  } catch (err) {
+    flow.log.error('admin message failed', errorFields(err));
   }
 }

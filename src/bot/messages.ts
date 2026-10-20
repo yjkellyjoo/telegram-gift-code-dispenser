@@ -1,3 +1,5 @@
+import type { EventRow } from '../store/events.js';
+
 export const msg = {
   start: (title: string) =>
     `To get your gift code for ${title}, join the event's Telegram group, then send me the passphrase you were given.`,
@@ -44,4 +46,20 @@ export const MAX_MESSAGE_LENGTH = 4096;
 export function deliveryLength(title: string, instructions: string): number {
   const placeholder = { privateKey: `0x${'0'.repeat(64)}`, address: `0x${'0'.repeat(40)}` };
   return renderDelivery(title, instructions, placeholder, false).length;
+}
+
+export function ordinal(n: number): string {
+  const teen = n % 100 >= 11 && n % 100 <= 13;
+  const suffix = teen ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] ?? 'th');
+  return `${n}${suffix}`;
+}
+
+export function tripMessage(event: EventRow): string {
+  return [
+    `🔴 ${event.title}: claims paused`,
+    `Claim burst: a ${ordinal(event.tripCount + 1)} claim within ${event.tripSeconds} s (limit ${event.tripCount} per ${event.tripSeconds} s).`,
+    'Codes already claimed can still be re-sent.',
+    'Check:  dispenser status',
+    'Resume: dispenser resume',
+  ].join('\n');
 }

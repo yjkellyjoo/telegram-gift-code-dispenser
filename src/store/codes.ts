@@ -75,3 +75,10 @@ export function findCodeByClaimer(db: Db, eventId: number, userId: number): Clai
     | ClaimedCode
     | undefined;
 }
+
+export function countClaimsSince(db: Db, eventId: number, since: number): number {
+  const row = db.prepare('SELECT COUNT(*) AS n FROM codes WHERE event_id = ? AND claimed_at >= ?').get(eventId, since) as {
+    n: number;
+  };
+  return row.n;
+}
