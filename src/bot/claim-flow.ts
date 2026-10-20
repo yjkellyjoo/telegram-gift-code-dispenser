@@ -1,6 +1,8 @@
 import type { Api } from 'grammy';
 import { claimOrGet } from '../core/claim.js';
+import { classifyMember, type Membership } from '../core/membership.js';
 import { verifyPassphrase } from '../core/passphrase.js';
+import { errorFields } from '../log.js';
 import { recordFailure } from '../store/attempts.js';
 import { findCodeByClaimer } from '../store/codes.js';
 import { getEvent, type EventRow } from '../store/events.js';
@@ -33,7 +35,7 @@ export interface TextOutcome {
 }
 
 /** Any non-command text: the claim flow of spec §8.2, in row order. */
-export async function textReply(_api: Api, flow: Flow, userId: number, text: string): Promise<TextOutcome> {
+export async function textReply(api: Api, flow: Flow, userId: number, text: string): Promise<TextOutcome> {
   const { db, clock, log } = flow;
   const event = getEvent(db);
   if (!event) return { reply: plain(msg.noEventOpen) };
@@ -43,6 +45,16 @@ export async function textReply(_api: Api, flow: Flow, userId: number, text: str
     if (existing.privateKey === null) return { reply: plain(msg.noLongerStored) };
     return { reply: codeReply(event, { privateKey: existing.privateKey, address: existing.address }) };
   }
+
+  let membership: Membership;
+  try {
+    membership = classifyMember(await api.getChatMember(event.groupChatId, userId));
+  } catch (err) {
+    log.warn('membership lookup failed', { user: userId, ...errorFields(err) });
+    return { reply: plain(msg.lookupFailed) };
+  }
+  if (membership === 'not_member') return { reply: plain(msg.notMember(event.title)) };
+  if (membership === 'restricted') return { reply: plain(msg.restricted) };
 
   const right = event.passphraseHash !== null && (await verifyPassphrase(text, event.passphraseHash));
   if (!right) {
