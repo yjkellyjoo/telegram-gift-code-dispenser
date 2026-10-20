@@ -1,0 +1,16 @@
+# Installed at /opt/gift-dispenser/compose.yaml (spec §6.2).
+services:
+  bot:
+    image: gift-dispenser:0.1.0
+    restart: unless-stopped
+    user: "10001:10001"
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    env_file: /etc/gift-dispenser/bot.env
+    volumes:
+      - /var/lib/gift-dispenser:/data
+    logging:
+      options: { max-size: "10m", max-file: "3" }

@@ -1,0 +1,9 @@
+#!/bin/sh
+# Runs one dispenser command in a throwaway container beside the bot (spec §6.2).
+# The current directory is mounted read-only at /work, so `--instructions instructions.txt` works.
+# A terminal is attached only when stdin is one: prompts work over `ssh -t`, piping works over `ssh`.
+set -eu
+tty=-T
+if [ -t 0 ]; then tty=; fi
+exec docker compose -f /opt/gift-dispenser/compose.yaml run --rm --no-deps $tty \
+  -v "$(pwd):/work:ro" -w /work bot dispenser "$@"
