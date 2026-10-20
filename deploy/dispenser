@@ -1,9 +1,11 @@
 #!/bin/sh
-# Runs one dispenser command in a throwaway container beside the bot (spec §6.2).
+# Runs one dispenser command in a throwaway container of the compose file's `cli` service (spec §6.2).
+# That service has Docker logging switched off, so output that can hold keys never reaches a log file.
 # The current directory is mounted read-only at /work, so `--instructions instructions.txt` works.
-# A terminal is attached only when stdin is one: prompts work over `ssh -t`, piping works over `ssh`.
+# A terminal is attached only when stdin and stdout both are terminals: prompts work over `ssh -t`,
+# and `dispenser export > unclaimed.txt` over `ssh` never mixes stderr into the key file.
 set -eu
 tty=-T
-if [ -t 0 ]; then tty=; fi
+if [ -t 0 ] && [ -t 1 ]; then tty=; fi
 exec docker compose -f /opt/gift-dispenser/compose.yaml run --rm --no-deps $tty \
-  -v "$(pwd):/work:ro" -w /work bot dispenser "$@"
+  -v "$(pwd):/work:ro" -w /work cli dispenser "$@"

@@ -1,17 +1,28 @@
 # Installed at /opt/gift-dispenser/compose.yaml (spec §6.2).
+x-dispenser: &dispenser
+  image: gift-dispenser:0.1.0
+  user: "10001:10001"
+  read_only: true
+  tmpfs: [/tmp]
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  mem_limit: 256m
+  env_file: /etc/gift-dispenser/bot.env
+  volumes:
+    - /var/lib/gift-dispenser:/data
+
 services:
   bot:
-    image: gift-dispenser:0.1.0
+    <<: *dispenser
     restart: unless-stopped
     stop_grace_period: 15s
-    user: "10001:10001"
-    read_only: true
-    tmpfs: [/tmp]
-    cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
-    mem_limit: 256m
-    env_file: /etc/gift-dispenser/bot.env
-    volumes:
-      - /var/lib/gift-dispenser:/data
     logging:
       options: { max-size: "10m", max-file: "3" }
+
+  # The `dispenser` wrapper runs this service. Its output can contain keys and passphrases,
+  # so Docker keeps no log of it (spec §11.5). `docker compose up` never starts it.
+  cli:
+    <<: *dispenser
+    profiles: [cli]
+    logging:
+      driver: none

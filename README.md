@@ -48,6 +48,8 @@ docker compose -f /opt/gift-dispenser/compose.yaml up -d
 docker compose -f /opt/gift-dispenser/compose.yaml logs -f bot
 ```
 
+The `dispenser` command runs as a separate `cli` service with Docker logging switched off, because its output can contain keys.
+
 ## Running an event
 
 | When | Steps |
