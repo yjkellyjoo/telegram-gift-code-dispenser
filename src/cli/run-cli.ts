@@ -5,6 +5,7 @@ import { eventCreate } from './commands/event.js';
 import { importCodes } from './commands/import.js';
 import { init } from './commands/init.js';
 import { status } from './commands/status.js';
+import { unlock } from './commands/unlock.js';
 import type { CliDeps, Command, CommandEnv } from './env.js';
 import { CliError } from './errors.js';
 
@@ -21,6 +22,7 @@ const COMMANDS: Record<string, Command> = {
   status,
   'event create': eventCreate,
   import: importCodes,
+  unlock,
 };
 
 const USAGE = `usage: dispenser <command>

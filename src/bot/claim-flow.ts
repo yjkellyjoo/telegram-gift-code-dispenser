@@ -3,8 +3,8 @@ import { claimOrGet } from '../core/claim.js';
 import { classifyMember, type Membership } from '../core/membership.js';
 import { verifyPassphrase } from '../core/passphrase.js';
 import { errorFields } from '../log.js';
-import { recordFailure } from '../store/attempts.js';
-import { findCodeByClaimer } from '../store/codes.js';
+import { failuresOf, releaseTry, reserveTry, settleWrong } from '../store/attempts.js';
+import { countCodes, findCodeByClaimer } from '../store/codes.js';
 import { getEvent, type EventRow } from '../store/events.js';
 import { plain, type Flow, type Reply } from './flow.js';
 import { msg, renderDelivery } from './messages.js';
@@ -56,12 +56,18 @@ export async function textReply(api: Api, flow: Flow, userId: number, text: stri
   if (membership === 'not_member') return { reply: plain(msg.notMember(event.title)) };
   if (membership === 'restricted') return { reply: plain(msg.restricted) };
 
+  if (failuresOf(db, event.id, userId) >= event.maxAttempts) return { reply: plain(msg.lockedOut(userId)) };
+  if (countCodes(db, event.id).unclaimed === 0) return { reply: plain(msg.allClaimed) };
+  if (!reserveTry(db, event.id, userId, event.maxAttempts)) return { reply: plain(msg.lockedOut(userId)) };
+
   const right = event.passphraseHash !== null && (await verifyPassphrase(text, event.passphraseHash));
   if (!right) {
-    const failures = recordFailure(db, event.id, userId);
+    const failures = settleWrong(db, event.id, userId, event.maxAttempts, clock.now());
     log.info('wrong passphrase', { user: userId, failures });
-    return { reply: plain(msg.wrong(event.maxAttempts - failures)) };
+    const left = event.maxAttempts - failures;
+    return { reply: plain(left > 0 ? msg.wrong(left) : msg.lockedOut(userId)) };
   }
+  releaseTry(db, event.id, userId);
 
   const result = claimOrGet(db, clock.now(), userId);
   switch (result.kind) {
