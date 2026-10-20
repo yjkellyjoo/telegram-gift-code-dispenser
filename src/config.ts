@@ -17,7 +17,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     throw new Error('ADMIN_USER_ID must be your numeric Telegram user ID');
   }
   const tz = env.TZ ?? 'UTC';
-  if (!isTimeZone(tz)) throw new Error(`TZ "${tz}" is not a known time zone`);
+  if (!isTimeZone(tz)) throw new Error('TZ is not a known time zone');
   return {
     token,
     adminUserId,

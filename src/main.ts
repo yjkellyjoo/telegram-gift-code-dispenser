@@ -51,7 +51,11 @@ async function runBot(config: Config): Promise<void> {
 
   const shutdown = async () => {
     clearInterval(watchdog);
-    await Promise.race([runner.stop(), sleep(10_000)]);
+    const drained = (async () => {
+      await runner.stop();
+      while (runner.size() > 0) await sleep(50);
+    })();
+    await Promise.race([drained, sleep(10_000)]);
     app.close();
     process.exit(0);
   };
