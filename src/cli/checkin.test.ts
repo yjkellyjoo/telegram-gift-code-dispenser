@@ -41,12 +41,23 @@ describe('dispenser checkin send', () => {
     expect(h.lastTextTo(ALICE)).toMatch(/^Hi! 1 day ago /);
   });
 
-  test('counts a blocked account as unreachable and another error as failed, and never retries them', async () => {
+  test('counts a blocked account as unreachable and a refused chat as failed, and never retries them', async () => {
     h.clock.set('2026-11-21T12:00:00Z');
     h.telegram.failNext('sendMessage', { error_code: 403, description: 'Forbidden: bot was blocked by the user' });
-    h.telegram.failNext('sendMessage', new Error('network down'));
+    h.telegram.failNext('sendMessage', { error_code: 400, description: 'Bad Request: chat not found' });
     expect((await h.cli(['checkin', 'send'])).stdout).toBe('sent 1 · unreachable 1 · failed 1\n');
     expect((await h.cli(['checkin', 'send'])).stdout).toBe('sent 0 · unreachable 0 · failed 0\n');
+  });
+
+  test('stops at an error that is not about one recipient and sends the rest on the next run', async () => {
+    h.clock.set('2026-11-21T12:00:00Z');
+    h.telegram.failNext('sendMessage', { error_code: 401, description: 'Unauthorized' });
+    const stopped = await h.cli(['checkin', 'send']);
+    expect(stopped.code).toBe(1);
+    expect(stopped.stdout).toBe('sent 0 · unreachable 0 · failed 1\n');
+    expect(stopped.stderr).toMatch(/stopped after a send error/);
+    expect(h.logs.some((line) => line.includes('"msg":"check-in send failed"') && line.includes('"errorCode":401'))).toBe(true);
+    expect((await h.cli(['checkin', 'send'])).stdout).toBe('sent 2 · unreachable 0 · failed 0\n');
   });
 
   test('two overlapping runs still send each claimant one message', async () => {

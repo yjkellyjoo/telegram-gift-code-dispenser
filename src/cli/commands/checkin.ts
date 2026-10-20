@@ -2,6 +2,7 @@ import { GrammyError } from 'grammy';
 import { parseArgs } from 'node:util';
 import { CHECKIN_KEYBOARD, checkinText } from '../../core/checkin.js';
 import { eventState } from '../../core/event-state.js';
+import { errorFields } from '../../log.js';
 import { claimedCodes, markCheckinSent, setCheckinStatus } from '../../store/codes.js';
 import type { CommandEnv } from '../env.js';
 import { cliArgs, CliError } from '../errors.js';
@@ -18,6 +19,7 @@ export async function checkinSend(env: CommandEnv): Promise<void> {
 
   const db = env.db();
   const counts = { sent: 0, unreachable: 0, failed: 0 };
+  let stopped = false;
   const pending = claimedCodes(db, event.id).filter((code) => code.checkinStatus === null);
   for (const code of pending) {
     const now = env.deps.clock.now();
@@ -28,11 +30,25 @@ export async function checkinSend(env: CommandEnv): Promise<void> {
       });
       counts.sent += 1;
     } catch (err) {
-      const blocked = err instanceof GrammyError && err.error_code === 403;
-      setCheckinStatus(db, code.id, blocked ? 'unreachable' : 'failed');
-      counts[blocked ? 'unreachable' : 'failed'] += 1;
+      env.deps.log.warn('check-in send failed', { codeId: code.id, ...errorFields(err) });
+      const errorCode = err instanceof GrammyError ? err.error_code : undefined;
+      if (errorCode === 403) {
+        setCheckinStatus(db, code.id, 'unreachable');
+        counts.unreachable += 1;
+      } else {
+        setCheckinStatus(db, code.id, 'failed');
+        counts.failed += 1;
+        // Only 403 and 400 are about this recipient; anything else (401, a long 429, 5xx, no network) would hit the rest too.
+        stopped = errorCode !== 400;
+      }
     }
+    if (stopped) break;
     await env.deps.sleep(SEND_GAP_MS);
   }
   env.out(`sent ${counts.sent} · unreachable ${counts.unreachable} · failed ${counts.failed}`);
+  if (stopped) {
+    throw new CliError(
+      'stopped after a send error that is not about one recipient (see the log); fix it, then run "dispenser checkin send" again to send the rest',
+    );
+  }
 }

@@ -473,8 +473,13 @@ Did you upload your first file?
 - It requires the event to be closed.
   The admin runs it around day 7.
 - `checkin_status = sent` and `checkin_sent_at` are written before sending, so a second run never sends twice.
-- A 403 from Telegram (the account blocked the bot) sets `unreachable`; any other send error sets `failed`.
-- The command prints the counts of sent, unreachable, and failed messages.
+- A 403 from Telegram (the account blocked the bot) sets `unreachable`, and a 400 sets `failed`.
+  Both are about that one recipient, so the run goes on.
+- Any other send error (another Telegram error code, or no answer from Telegram) sets that code `failed`, is logged, and stops the run.
+  Such an error (a revoked token, a long rate limit, an outage) would hit every remaining claimant too.
+  The rest stay pending, and the command exits with code 1 and says to run it again after fixing the cause.
+- Every send error is logged with the code's ID and Telegram's error code, never a message text.
+- The command prints the counts of sent, unreachable, and failed messages, also when it stopped early.
 
 A tap:
 
