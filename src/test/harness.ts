@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { runCli, type CliResult } from '../cli/run-cli.js';
 import { createLogger, type Logger } from '../log.js';
 import { FakeClock } from './fake-clock.js';
+import { key } from './keys.js';
 import { TelegramFake } from './telegram-fake.js';
 
 export const TOKEN = '777000:AAH-test-token-secret-value';
@@ -78,6 +79,19 @@ export class Harness {
       ],
       { tty: true, answers: [PASSPHRASE, PASSPHRASE] },
     );
+  }
+
+  importKeys(keys: readonly string[]): Promise<CliResult> {
+    return this.ok(['import', '-', '--yes'], { stdin: keys.join('\n') });
+  }
+
+  /** init → event create → import → clock at the opening time, 2026-11-14 10:00 UTC. */
+  async openEvent(options: { keys?: readonly string[]; extra?: string[] } = {}): Promise<void> {
+    await this.ok(['init']);
+    const created = await this.createEvent(options.extra);
+    if (created.code !== 0) throw new Error(`event create failed:\n${created.stderr}`);
+    await this.importKeys(options.keys ?? [key(1), key(2), key(3)]);
+    this.clock.set('2026-11-14T10:00:00Z');
   }
 
   close(): void {

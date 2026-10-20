@@ -1,5 +1,6 @@
 import { parseArgs } from 'node:util';
 import { eventState } from '../../core/event-state.js';
+import { countCodes } from '../../store/codes.js';
 import { getEvent, type EventRow } from '../../store/events.js';
 import { formatDateTime } from '../../time.js';
 import type { CommandEnv } from '../env.js';
@@ -29,5 +30,7 @@ export function status(env: CommandEnv): void {
     env.out('No event yet. Create one with "dispenser event create".');
     return;
   }
+  const { claimed, unclaimed } = countCodes(db, event.id);
   env.out(`${label('Event')}${event.title} · ${stateLine(event, env.deps.clock.now())}`);
+  env.out(`${label('Claims')}${claimed} claimed · ${unclaimed} left`);
 }
