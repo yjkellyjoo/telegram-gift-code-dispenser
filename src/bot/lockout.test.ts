@@ -49,6 +49,21 @@ describe('passphrase tries', () => {
     expect((await h.cli(['unlock', '42'])).stderr).toBe('error: no wrong tries recorded for 42\n');
   });
 
+  test('unlock refuses an account that only ever sent the right passphrase', async () => {
+    await h.say(ALICE, PASSPHRASE);
+    expect(h.lastTextTo(ALICE)).toMatch(/^Your gift code for Swarm booth:/);
+    const result = await h.cli(['unlock', '5001']);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toBe('error: no wrong tries recorded for 5001\n');
+  });
+
+  test('the right passphrase after 4 wrong ones delivers the code and gives the try back', async () => {
+    await guessWrong(4);
+    await h.say(ALICE, PASSPHRASE);
+    expect(h.lastTextTo(ALICE)).toMatch(/^Your gift code for Swarm booth:/);
+    expect((await h.cli(['status'])).stdout).toMatch(/^Lockouts {2}0$/m);
+  });
+
   test('--max-attempts sets the limit', async () => {
     h.close();
     h = new Harness();

@@ -40,11 +40,12 @@ export function settleWrong(db: Db, eventId: number, userId: number, maxAttempts
   return failuresOf(db, eventId, userId);
 }
 
-/** Lets a locked-out account try again. locked_at stays, so stats still count the lockout. */
+/** Lets an account with wrong tries try again; false when it has none. locked_at stays, so stats still count the lockout. */
 export function resetFailures(db: Db, eventId: number, userId: number): boolean {
   return (
-    db.prepare('UPDATE attempts SET failures = 0 WHERE event_id = ? AND telegram_user_id = ?').run(eventId, userId)
-      .changes > 0
+    db
+      .prepare('UPDATE attempts SET failures = 0 WHERE event_id = ? AND telegram_user_id = ? AND failures > 0')
+      .run(eventId, userId).changes > 0
   );
 }
 
