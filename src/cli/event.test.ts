@@ -67,6 +67,25 @@ describe('dispenser event create', () => {
     );
   });
 
+  test('refuses a passphrase longer than the bot reads as an attempt', async () => {
+    const args = ['event', 'create', '--title', 'T', `--group=${GROUP_ID}`, '--opens', '2026-11-14 10:00',
+      '--closes', '2026-11-14 18:00', '--instructions', h.instructionsFile];
+    const tooLong = 'a'.repeat(201);
+    const result = await h.cli(args, { tty: true, answers: [tooLong, tooLong] });
+    expect(result.code).toBe(1);
+    expect(result.stderr).toBe('error: the passphrase must have at most 200 characters\n');
+    expect((await h.cli(['status'])).stdout).toMatch(/^No event yet/);
+  });
+
+  test('refuses a passphrase the bot would read as a command', async () => {
+    const args = ['event', 'create', '--title', 'T', `--group=${GROUP_ID}`, '--opens', '2026-11-14 10:00',
+      '--closes', '2026-11-14 18:00', '--instructions', h.instructionsFile];
+    const result = await h.cli(args, { tty: true, answers: ['  /orbit maple lantern', '  /orbit maple lantern'] });
+    expect(result.code).toBe(1);
+    expect(result.stderr).toBe('error: the passphrase cannot start with "/": the bot reads such messages as commands\n');
+    expect((await h.cli(['status'])).stdout).toMatch(/^No event yet/);
+  });
+
   test('--passphrase-generate prints three words from the EFF short list, once', async () => {
     h.randomInts = [0, 1, 1295];
     const result = await h.createEvent(['--passphrase-generate']);

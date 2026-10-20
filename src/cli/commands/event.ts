@@ -5,6 +5,7 @@ import { eventState } from '../../core/event-state.js';
 import {
   generatePassphrase,
   hashPassphrase,
+  MAX_ATTEMPT_LENGTH,
   MIN_PASSPHRASE_LENGTH,
   normalizePassphrase,
 } from '../../core/passphrase.js';
@@ -83,6 +84,13 @@ async function askPassphrase(terminal: Terminal, generateFlag: string): Promise<
   if (first !== second) throw new CliError('the passphrases do not match');
   if (normalizePassphrase(first).length < MIN_PASSPHRASE_LENGTH) {
     throw new CliError(`the passphrase must have at least ${MIN_PASSPHRASE_LENGTH} characters`);
+  }
+  // The bot counts longer text as a wrong try and treats text starting with "/" as a command, so neither could ever match.
+  if (first.length > MAX_ATTEMPT_LENGTH) {
+    throw new CliError(`the passphrase must have at most ${MAX_ATTEMPT_LENGTH} characters`);
+  }
+  if (normalizePassphrase(first).startsWith('/')) {
+    throw new CliError('the passphrase cannot start with "/": the bot reads such messages as commands');
   }
   return first;
 }

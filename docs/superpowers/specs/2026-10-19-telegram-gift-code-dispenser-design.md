@@ -556,6 +556,7 @@ Recent    14:31:05  482130001  0x3fA1…92c0
 - `--tz` defaults to `TZ`.
 - The passphrase is read from a hidden prompt, which refuses to run without a terminal.
   `--passphrase-generate` (or `event passphrase --generate`) instead picks 3 words from the EFF short word list (about 31 bits) and prints them once.
+  The prompt refuses a passphrase of more than 200 characters or one starting with "/", because the bot counts longer text as a wrong try and reads text starting with "/" as a command.
 - `--group` is confirmed live against Telegram: the bot must be an admin in that chat.
 - `event edit` takes any create flag except the passphrase until the event closes.
   `--opens` can change only before the event opens, and `--closes` must stay in the future.
