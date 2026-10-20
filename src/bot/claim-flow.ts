@@ -1,5 +1,6 @@
 import type { Api } from 'grammy';
 import { claimOrGet } from '../core/claim.js';
+import { eventState } from '../core/event-state.js';
 import { classifyMember, type Membership } from '../core/membership.js';
 import { verifyPassphrase } from '../core/passphrase.js';
 import { errorFields } from '../log.js';
@@ -15,7 +16,7 @@ function codeReply(event: EventRow, code: { privateKey: string; address: string 
 
 export function startReply(flow: Flow, userId: number): string {
   const event = getEvent(flow.db);
-  if (!event) return msg.noEventOpen;
+  if (!event || eventState(event, flow.clock.now()) !== 'open') return msg.noEventOpen;
   const hasCode = findCodeByClaimer(flow.db, event.id, userId) !== undefined;
   return hasCode ? `${msg.start(event.title)}\n\n${msg.startHasCode}` : msg.start(event.title);
 }
@@ -45,6 +46,7 @@ export async function textReply(api: Api, flow: Flow, userId: number, text: stri
     if (existing.privateKey === null) return { reply: plain(msg.noLongerStored) };
     return { reply: codeReply(event, { privateKey: existing.privateKey, address: existing.address }) };
   }
+  if (eventState(event, clock.now()) !== 'open') return { reply: plain(msg.noEventOpen) };
 
   let membership: Membership;
   try {
@@ -76,6 +78,8 @@ export async function textReply(api: Api, flow: Flow, userId: number, text: stri
       return { reply: codeReply(event, result) };
     case 'wiped':
       return { reply: plain(msg.noLongerStored) };
+    case 'closed':
+      return { reply: plain(msg.noEventOpen) };
     case 'pool_empty':
       return { reply: plain(msg.allClaimed) };
   }

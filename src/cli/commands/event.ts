@@ -1,13 +1,15 @@
 import { readFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { deliveryLength, MAX_MESSAGE_LENGTH } from '../../bot/messages.js';
+import { eventState } from '../../core/event-state.js';
 import {
   generatePassphrase,
   hashPassphrase,
   MIN_PASSPHRASE_LENGTH,
   normalizePassphrase,
 } from '../../core/passphrase.js';
-import { getEvent, insertEvent, type EventRow } from '../../store/events.js';
+import { countCodes } from '../../store/codes.js';
+import { getEvent, insertEvent, updateEvent, type EventPatch, type EventRow } from '../../store/events.js';
 import { formatDateTime, isTimeZone, parseLocalDateTime } from '../../time.js';
 import type { CommandEnv, Terminal } from '../env.js';
 import { cliArgs, CliError, intArg, required } from '../errors.js';
@@ -126,4 +128,68 @@ export async function eventCreate(env: CommandEnv): Promise<void> {
   env.out(`created "${title}" for group ${groupChatId} “${groupTitle}”`);
   env.out(`open from ${formatDateTime(opensAt, tz)} to ${formatDateTime(closesAt, tz)}`);
   if (generated) env.out(`passphrase: ${passphrase}`);
+}
+
+export async function eventEdit(env: CommandEnv): Promise<void> {
+  const { values } = cliArgs(() => parseArgs({ args: env.argv, options: EVENT_OPTIONS, strict: true }));
+  const event = requireEvent(env);
+  const now = env.deps.clock.now();
+  const state = eventState(event, now);
+  if (state === 'closed' || state === 'wiped') throw new CliError('the event has closed; a closed event cannot change');
+
+  const patch: EventPatch = {};
+  const tz = timeZone(values.tz ?? event.tz);
+  if (values.tz !== undefined) patch.tz = tz;
+  if (values.title !== undefined) patch.title = required(values.title, '--title');
+  if (values.opens !== undefined) {
+    if (state !== 'scheduled') throw new CliError('--opens can only change before the event opens');
+    patch.opensAt = localTime(values.opens, tz, '--opens');
+  }
+  if (values.closes !== undefined) {
+    patch.closesAt = localTime(values.closes, tz, '--closes');
+    if (patch.closesAt <= now) throw new CliError('--closes must be in the future');
+  }
+  if ((patch.opensAt ?? event.opensAt) >= (patch.closesAt ?? event.closesAt)) {
+    throw new CliError('--opens must be before --closes');
+  }
+  if (values.instructions !== undefined) patch.instructions = await readInstructions(values.instructions);
+  checkLength(patch.title ?? event.title, patch.instructions ?? event.instructions);
+  if (values['max-attempts'] !== undefined) {
+    patch.maxAttempts = intArg(values['max-attempts'], '--max-attempts', 1, 100);
+  }
+  if (values['trip-rate'] !== undefined) Object.assign(patch, tripRate(values['trip-rate']));
+  if (values.group !== undefined) {
+    patch.groupChatId = groupId(values.group);
+    await requireBotAdmin(env.api(), patch.groupChatId);
+  }
+
+  const changed = Object.keys(patch);
+  if (changed.length === 0) throw new CliError('nothing to change; pass at least one flag');
+  updateEvent(env.db(), event.id, patch);
+  env.out(`updated ${changed.join(', ')}`);
+}
+
+export async function eventPassphrase(env: CommandEnv): Promise<void> {
+  const { values } = cliArgs(() =>
+    parseArgs({ args: env.argv, options: { generate: { type: 'boolean' } }, strict: true }),
+  );
+  const event = requireEvent(env);
+  const state = eventState(event, env.deps.clock.now());
+  if (state === 'closed' || state === 'wiped') throw new CliError('the event has closed');
+  const generated = values.generate === true;
+  const passphrase = generated ? generatePassphrase(env.deps.randomInt) : await askPassphrase(env.deps.terminal, '--generate');
+  updateEvent(env.db(), event.id, { passphraseHash: await hashPassphrase(passphrase) });
+  env.out('passphrase replaced; the old one stops working now');
+  if (generated) env.out(`passphrase: ${passphrase}`);
+}
+
+export function eventClose(env: CommandEnv): void {
+  cliArgs(() => parseArgs({ args: env.argv, options: {}, strict: true }));
+  const event = requireEvent(env);
+  const now = env.deps.clock.now();
+  const state = eventState(event, now);
+  if (state === 'closed' || state === 'wiped') throw new CliError('the event is already closed');
+  updateEvent(env.db(), event.id, { closedAt: now });
+  const { claimed, unclaimed } = countCodes(env.db(), event.id);
+  env.out(`closed: ${claimed} claimed, ${unclaimed} unclaimed. Next: dispenser export`);
 }
