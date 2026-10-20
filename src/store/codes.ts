@@ -104,3 +104,9 @@ export function unclaimedAddresses(db: Db, eventId: number): string[] {
     }>
   ).map((row) => row.address);
 }
+
+export function claimedCodes(db: Db, eventId: number): ClaimedCode[] {
+  return db
+    .prepare(`${CLAIMED} WHERE event_id = ? AND claimed_by IS NOT NULL ORDER BY claimed_at, id`)
+    .all(eventId) as ClaimedCode[];
+}

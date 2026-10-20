@@ -57,3 +57,19 @@ export function lockedOutAccounts(db: Db, eventId: number, maxAttempts: number):
       .all(eventId, maxAttempts) as Array<{ id: number }>
   ).map((row) => row.id);
 }
+
+/** Accounts that sent at least one passphrase (attempts only records failures, so claimants are added). */
+export function attemptTotals(db: Db, eventId: number): { tried: number; everLockedOut: number } {
+  const tried = db
+    .prepare(
+      `SELECT COUNT(*) AS n FROM (
+         SELECT telegram_user_id FROM attempts WHERE event_id = @eventId
+         UNION
+         SELECT claimed_by FROM codes WHERE event_id = @eventId AND claimed_by IS NOT NULL)`,
+    )
+    .get({ eventId }) as { n: number };
+  const locked = db
+    .prepare('SELECT COUNT(*) AS n FROM attempts WHERE event_id = ? AND locked_at IS NOT NULL')
+    .get(eventId) as { n: number };
+  return { tried: tried.n, everLockedOut: locked.n };
+}

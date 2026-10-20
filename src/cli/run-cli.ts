@@ -6,6 +6,7 @@ import { eventClose, eventCreate, eventEdit, eventPassphrase } from './commands/
 import { exportCodes, wipe } from './commands/export-wipe.js';
 import { importCodes } from './commands/import.js';
 import { init } from './commands/init.js';
+import { stats } from './commands/stats.js';
 import { status } from './commands/status.js';
 import { unlock } from './commands/unlock.js';
 import type { CliDeps, Command, CommandEnv } from './env.js';
@@ -22,6 +23,7 @@ export interface CliResult {
 const COMMANDS: Record<string, Command> = {
   init,
   status,
+  stats,
   'event create': eventCreate,
   'event edit': eventEdit,
   'event passphrase': eventPassphrase,
