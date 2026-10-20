@@ -110,3 +110,15 @@ export function claimedCodes(db: Db, eventId: number): ClaimedCode[] {
     .prepare(`${CLAIMED} WHERE event_id = ? AND claimed_by IS NOT NULL ORDER BY claimed_at, id`)
     .all(eventId) as ClaimedCode[];
 }
+
+export function markCheckinSent(db: Db, codeId: number, now: number): void {
+  db.prepare("UPDATE codes SET checkin_status = 'sent', checkin_sent_at = ? WHERE id = ?").run(now, codeId);
+}
+
+export function setCheckinStatus(db: Db, codeId: number, status: CheckinStatus): void {
+  db.prepare('UPDATE codes SET checkin_status = ? WHERE id = ?').run(status, codeId);
+}
+
+export function recordCheckinAnswer(db: Db, codeId: number, answer: CheckinAnswer, now: number): void {
+  db.prepare('UPDATE codes SET checkin_answer = ?, checkin_answered_at = ? WHERE id = ?').run(answer, now, codeId);
+}

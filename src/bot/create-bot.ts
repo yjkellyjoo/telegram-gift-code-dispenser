@@ -3,6 +3,7 @@ import type { Update, UserFromGetMe } from 'grammy/types';
 import type { Clock } from '../clock.js';
 import { errorFields, type Logger } from '../log.js';
 import { openDatabase } from '../store/db.js';
+import { checkinTap } from './checkin-taps.js';
 import { myCodeReply, notifyAdmin, startReply, textReply } from './claim-flow.js';
 import type { Flow, Reply } from './flow.js';
 import { handleGroupStatus } from './group-status.js';
@@ -73,6 +74,10 @@ export function createBot(deps: BotDeps): DispenserBot {
     } finally {
       if (outcome.trippedEvent) await notifyAdmin(ctx.api, flow, tripMessage(outcome.trippedEvent));
     }
+  });
+  priv.on('callback_query:data', async (ctx) => {
+    const text = checkinTap(flow, ctx.from.id, ctx.callbackQuery.data);
+    await ctx.answerCallbackQuery(text === null ? undefined : { text });
   });
   priv.on('message', (ctx) => ctx.reply(startReply(flow, ctx.from.id)));
   bot.on('callback_query', (ctx) => ctx.answerCallbackQuery());

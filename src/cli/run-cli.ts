@@ -2,6 +2,7 @@ import { Api } from 'grammy';
 import { errorFields } from '../log.js';
 import { DatabaseError, openDatabase, type Db } from '../store/db.js';
 import { pause, resume } from './commands/breaker.js';
+import { checkinSend } from './commands/checkin.js';
 import { eventClose, eventCreate, eventEdit, eventPassphrase } from './commands/event.js';
 import { exportCodes, wipe } from './commands/export-wipe.js';
 import { importCodes } from './commands/import.js';
@@ -34,6 +35,7 @@ const COMMANDS: Record<string, Command> = {
   unlock,
   export: exportCodes,
   wipe,
+  'checkin send': checkinSend,
 };
 
 const USAGE = `usage: dispenser <command>
