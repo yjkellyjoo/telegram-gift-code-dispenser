@@ -38,3 +38,21 @@ export function insertCodes(
     for (const code of codes) insert.run(eventId, code.privateKey, code.address);
   })();
 }
+
+/** Assigns the unclaimed code with the lowest id. Call it inside a transaction. */
+export function assignNextCode(
+  db: Db,
+  eventId: number,
+  userId: number,
+  now: number,
+): { privateKey: string; address: string } | undefined {
+  const next = db
+    .prepare(
+      `SELECT id, private_key AS privateKey, address FROM codes
+       WHERE event_id = ? AND claimed_by IS NULL AND private_key IS NOT NULL ORDER BY id LIMIT 1`,
+    )
+    .get(eventId) as { id: number; privateKey: string; address: string } | undefined;
+  if (!next) return undefined;
+  db.prepare('UPDATE codes SET claimed_by = ?, claimed_at = ? WHERE id = ?').run(userId, now, next.id);
+  return { privateKey: next.privateKey, address: next.address };
+}

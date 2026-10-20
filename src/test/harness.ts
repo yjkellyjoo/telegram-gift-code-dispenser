@@ -1,11 +1,15 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { Update } from 'grammy/types';
+import { createBot, type DispenserBot } from '../bot/create-bot.js';
+import type { RateLimit } from '../bot/rate-limit.js';
 import { runCli, type CliResult } from '../cli/run-cli.js';
 import { createLogger, type Logger } from '../log.js';
 import { FakeClock } from './fake-clock.js';
 import { key } from './keys.js';
 import { TelegramFake } from './telegram-fake.js';
+import { callbackUpdate, textUpdate } from './updates.js';
 
 export const TOKEN = '777000:AAH-test-token-secret-value';
 export const BOT_ID = 777000;
@@ -13,6 +17,20 @@ export const ADMIN_ID = 1000;
 export const GROUP_ID = -1001234567890;
 export const PASSPHRASE = 'Orbit Maple Lantern';
 export const INSTRUCTIONS = 'Import the key into your Bee node: https://docs.ethswarm.org';
+
+/** The code message as spec §8.6 words it, written out by hand. */
+export function deliveryText(privateKey: string, address: string, title = 'Swarm booth'): string {
+  return [
+    `Your gift code for ${title}:`,
+    `<tg-spoiler><code>${privateKey}</code></tg-spoiler>`,
+    `Wallet address: <code>${address}</code>`,
+    '',
+    INSTRUCTIONS,
+    '',
+    'Save your code somewhere safe now: the bot deletes all codes shortly after the event.',
+    'Lost this message? Send /mycode to see it again.',
+  ].join('\n');
+}
 
 export interface CliOptions {
   stdin?: string;
@@ -35,6 +53,7 @@ export class Harness {
     throw new Error('unexpected fetch');
   };
   readonly sleeps: number[] = [];
+  private current: DispenserBot | undefined;
 
   constructor() {
     writeFileSync(this.instructionsFile, INSTRUCTIONS);
@@ -94,7 +113,48 @@ export class Harness {
     this.clock.set('2026-11-14T10:00:00Z');
   }
 
+  bot(options: { rateLimit?: RateLimit } = {}): DispenserBot {
+    this.current ??= createBot({
+      token: TOKEN,
+      botInfo: this.telegram.botInfo,
+      dataDir: this.dataDir,
+      adminUserId: ADMIN_ID,
+      clock: this.clock,
+      log: this.log,
+      transformers: [this.telegram.transformer],
+      ...options,
+    });
+    return this.current;
+  }
+
+  /** A new bot process over the same data directory. */
+  restartBot(): DispenserBot {
+    this.current?.close();
+    this.current = undefined;
+    return this.bot();
+  }
+
+  send(update: Update): Promise<void> {
+    return this.bot().handleUpdate(update);
+  }
+
+  /** A private message one second after the previous one, so the default rate limit never drops it. */
+  async say(userId: number, text: string): Promise<void> {
+    this.clock.advance(1000);
+    await this.send(textUpdate(userId, text));
+  }
+
+  async tap(userId: number, data: string): Promise<void> {
+    this.clock.advance(1000);
+    await this.send(callbackUpdate(userId, data));
+  }
+
+  lastTextTo(chatId: number): string | undefined {
+    return this.telegram.textsTo(chatId).at(-1);
+  }
+
   close(): void {
+    this.current?.close();
     rmSync(this.dir, { recursive: true, force: true });
   }
 }
