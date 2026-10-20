@@ -1,4 +1,6 @@
+import { HttpError } from 'grammy';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { telegramRetry } from '../telegram-retry.js';
 import { BOT_ID, GROUP_ID, Harness, PASSPHRASE } from '../test/harness.js';
 import { key } from '../test/keys.js';
 
@@ -35,6 +37,13 @@ describe('dispenser status', () => {
     expect((await h.cli(['status'])).stdout).toMatch(/^Group     .*bot is NOT an admin \(status member\); claims fail closed$/m);
     h.telegram.failNext('getMe', new Error('network down'));
     expect((await h.cli(['status'])).stdout).toMatch(
+      /^Group     -1001234567890 · lookup failed \(no answer from Telegram\); claims fail closed$/m,
+    );
+  });
+
+  test('does not hang when Telegram is unreachable: network errors are not retried', async () => {
+    h.telegram.failNext('getMe', new HttpError('Network request for getMe failed!', new Error('network down')));
+    expect((await h.cli(['status'], { transformers: [telegramRetry()] })).stdout).toMatch(
       /^Group     -1001234567890 · lookup failed \(no answer from Telegram\); claims fail closed$/m,
     );
   });

@@ -76,7 +76,7 @@ export async function runCli(argv: string[], stdin: () => Promise<string>, deps:
     db: () => (db ??= openDatabase(deps.dataDir)),
     api: () => {
       if (!api) {
-        api = new Api(deps.token);
+        api = new Api(deps.token, { timeoutSeconds: 15 });
         for (const transformer of deps.transformers ?? []) api.config.use(transformer);
       }
       return api;

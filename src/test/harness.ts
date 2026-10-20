@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { Transformer } from 'grammy';
 import type { Update } from 'grammy/types';
 import { createBot, type DispenserBot } from '../bot/create-bot.js';
 import type { RateLimit } from '../bot/rate-limit.js';
@@ -36,6 +37,8 @@ export interface CliOptions {
   stdin?: string;
   tty?: boolean;
   answers?: string[];
+  /** Installed after the Telegram fake, so they wrap it, as production transformers wrap the real transport. */
+  transformers?: Transformer[];
 }
 
 /** One temp data directory with a fake clock, a fake Telegram and captured logs, driven through the seams. */
@@ -73,7 +76,7 @@ export class Harness {
         if (n >= max) throw new RangeError(`randomInt(${max}) cannot return ${n}`);
         return n;
       },
-      transformers: [this.telegram.transformer],
+      transformers: [this.telegram.transformer, ...(options.transformers ?? [])],
       fetch: (input, init) => this.fetch(input, init),
       blockscoutUrl: 'https://blockscout.test',
       sleep: async (ms) => {

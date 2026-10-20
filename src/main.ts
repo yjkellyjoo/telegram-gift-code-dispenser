@@ -1,4 +1,3 @@
-import { autoRetry } from '@grammyjs/auto-retry';
 import { run, sequentialize } from '@grammyjs/runner';
 import { Api, type Transformer } from 'grammy';
 import { randomInt } from 'node:crypto';
@@ -9,6 +8,7 @@ import { processTerminal, readAllStdin } from './cli/terminal.js';
 import { systemClock } from './clock.js';
 import { loadConfig, type Config } from './config.js';
 import { createLogger, errorFields } from './log.js';
+import { telegramRetry } from './telegram-retry.js';
 
 const POLL_TIMEOUT_MS = 3 * 60 * 1000;
 
@@ -34,7 +34,7 @@ async function runBot(config: Config): Promise<void> {
     adminUserId: config.adminUserId,
     clock: systemClock,
     log,
-    transformers: [autoRetry({ maxRetryAttempts: 3, maxDelaySeconds: 60 }), watchPolling],
+    transformers: [telegramRetry(), watchPolling],
     before: [sequentialize((ctx) => ctx.from?.id.toString())],
   });
   const runner = run(app.bot, {
@@ -73,7 +73,7 @@ async function runDispenser(argv: string[], config: Config): Promise<number> {
     log: createLogger((line) => process.stderr.write(`${line}\n`), [config.token], systemClock),
     terminal: processTerminal(),
     randomInt: (max) => randomInt(max),
-    transformers: [autoRetry({ maxRetryAttempts: 3, maxDelaySeconds: 60 })],
+    transformers: [telegramRetry()],
     fetch,
     blockscoutUrl: config.blockscoutUrl,
     sleep: (ms) => sleep(ms),
