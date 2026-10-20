@@ -3,6 +3,7 @@ import { errorFields } from '../log.js';
 import { DatabaseError, openDatabase, type Db } from '../store/db.js';
 import { pause, resume } from './commands/breaker.js';
 import { eventClose, eventCreate, eventEdit, eventPassphrase } from './commands/event.js';
+import { exportCodes, wipe } from './commands/export-wipe.js';
 import { importCodes } from './commands/import.js';
 import { init } from './commands/init.js';
 import { status } from './commands/status.js';
@@ -29,6 +30,8 @@ const COMMANDS: Record<string, Command> = {
   resume,
   import: importCodes,
   unlock,
+  export: exportCodes,
+  wipe,
 };
 
 const USAGE = `usage: dispenser <command>

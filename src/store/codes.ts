@@ -95,3 +95,12 @@ export function recentClaims(
     )
     .all(eventId, limit) as Array<{ claimedBy: number; claimedAt: number; address: string }>;
 }
+
+/** Addresses of codes nobody claimed, whether or not their keys are wiped. */
+export function unclaimedAddresses(db: Db, eventId: number): string[] {
+  return (
+    db.prepare('SELECT address FROM codes WHERE event_id = ? AND claimed_by IS NULL ORDER BY id').all(eventId) as Array<{
+      address: string;
+    }>
+  ).map((row) => row.address);
+}
