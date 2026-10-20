@@ -169,7 +169,7 @@ Host files:
 
 | Path | Contents | Owner, mode |
 |---|---|---|
-| `/etc/gift-dispenser/bot.env` | `BOT_TOKEN`, `ADMIN_USER_ID`, `TZ`, optional `BLOCKSCOUT_URL` (default `https://gnosis.blockscout.com`) | The admin's login user, `0400`; Docker Compose reads it on the host as that user |
+| `/etc/gift-dispenser/bot.env` | `BOT_TOKEN`, `ADMIN_USER_ID`, `TZ`, optional `BLOCKSCOUT_URL` (default `https://gnosisscan.io`, where `gnosis.blockscout.com` now redirects) | The admin's login user, `0400`; Docker Compose reads it on the host as that user |
 | `/var/lib/gift-dispenser/` | `dispenser.db` | `10001`, `0700` |
 | `/usr/local/bin/dispenser` | Wrapper around `docker compose run --rm bot dispenser …` | `root`, `0755` |
 
@@ -202,7 +202,7 @@ On a `my_chat_member` update from a group:
 
 | Change | Bot does |
 |---|---|
-| Made by `ADMIN_USER_ID`, and the bot is now a member or an admin | Messages the admin: "I'm now an admin in “<group title>” (ID -1001234567890)." or "I'm now a member of “<group title>” (ID …). Make me an admin so I can check membership." |
+| Made by `ADMIN_USER_ID`, and the bot is now a member or an admin | Messages the admin: "I'm now an admin in “<group title>” (ID -1001234567890). Use it as: dispenser event create --group=-1001234567890 …" or "I'm now a member of “<group title>” (ID …). Make me an admin so I can check membership." |
 | The bot is added by anyone else | Leaves the group without a word, and logs the chat ID |
 | Any change to the bot's status in the event's group, by anyone | Messages the admin with the new status; when the bot is no longer an admin: "The group check fails, and nobody can claim, until you make me an admin again." |
 
@@ -215,7 +215,8 @@ Setup steps:
    Telegram only guarantees membership lookups to bots that are admins.
 3. Take the chat ID from the bot's "I'm now an admin" message.
    Promoting the bot can convert a basic group into a supergroup, which changes its ID; the message is sent after that change, so it carries the final ID.
-4. Pass the ID to `event create --group`, which checks live that the bot is an admin there and shows the group title for confirmation.
+4. Pass the ID as `event create --group=<id>`, which checks live that the bot is an admin there and shows the group title for confirmation.
+   The `=` form is required because the ID starts with a minus sign.
 
 ## 7. Data model
 
@@ -326,6 +327,8 @@ Other commands and non-text messages get the `/start` reply.
 - Passphrases are normalized before hashing, both when set and when checked: Unicode NFKC, trimmed, internal whitespace collapsed to one space, lowercased.
   Comparison is constant-time against the scrypt hash.
 - Text longer than 200 characters counts as a wrong try without being hashed.
+- A try is reserved, in one transaction, before the passphrase is hashed, and given back when it was right.
+  At most `max_attempts` sends from one account are therefore checked at once; further concurrent sends get the locked-out reply until those finish.
 - Claimant text is only ever normalized and hashed for the comparison.
   It is never stored, echoed, or logged.
 
@@ -507,7 +510,7 @@ Until 30 days have passed since the last claim, the header reads `window: 30 day
 dispenser init                          create the database; refuses if it exists
 dispenser status                        event state, claims, breaker, group, lockouts, recent claims
 
-dispenser event create --title <text> --group <chat id>
+dispenser event create --title <text> --group=<chat id>
     --opens "YYYY-MM-DD HH:mm" --closes "YYYY-MM-DD HH:mm" [--tz <IANA zone>]
     --instructions <file> [--passphrase-generate]
     [--max-attempts <n>] [--trip-rate <n>/<seconds>]
@@ -705,8 +708,8 @@ Each item has a fallback, so none blocks the design.
 | Telegram renders `<code>` nested inside `<tg-spoiler>` | Render the key as `<tg-spoiler>` only |
 | A member who passed Rose's captcha has status `member` | Also accept `restricted` when both `is_member` and `can_send_messages` are true |
 | Promoting the bot in a basic group sends a `my_chat_member` update from the new supergroup | The bot also reports the new ID from the `migrate_to_chat_id` service message |
-| `0x45a1502382541Cd610CC9068e88727426b696293` is the current PostageStamp contract on Gnosis, and no older deployment is still in use | Count every PostageStamp deployment still in use |
-| Blockscout's Gnosis API serves an address's outgoing transactions within its rate limits | Use RPC only: `eth_getTransactionCount` gives "redeemed" at the time `stats` runs, without the 30-day window or "bought storage", and the report says so |
+| `0x45a1502382541Cd610CC9068e88727426b696293` is the current PostageStamp contract on Gnosis | Verified 2026-10-20: Blockscout labels it "PostageStamp v2.1", and it receives `createBatch` calls daily |
+| Blockscout's Gnosis API serves an address's outgoing transactions within its rate limits | Verified 2026-10-20: `/api/v2/addresses/<address>/transactions?filter=from` returns 50 per page with `next_page_params`, and allows 180 requests per window. Otherwise use RPC only: `eth_getTransactionCount` gives "redeemed" at the time `stats` runs, without the 30-day window or "bought storage", and the report says so |
 
 ## 16. Future to-dos
 
