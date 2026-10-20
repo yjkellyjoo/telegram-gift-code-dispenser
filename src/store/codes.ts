@@ -105,10 +105,24 @@ export function unclaimedAddresses(db: Db, eventId: number): string[] {
   ).map((row) => row.address);
 }
 
-export function claimedCodes(db: Db, eventId: number): ClaimedCode[] {
+/** A claimed code without its key: what the CLI reports on. The bot never needs it, so the SELECT leaves the key out. */
+export interface ClaimRecord {
+  id: number;
+  address: string;
+  claimedBy: number;
+  claimedAt: number;
+  checkinStatus: CheckinStatus | null;
+  checkinAnswer: CheckinAnswer | null;
+}
+
+export function claimedCodes(db: Db, eventId: number): ClaimRecord[] {
   return db
-    .prepare(`${CLAIMED} WHERE event_id = ? AND claimed_by IS NOT NULL ORDER BY claimed_at, id`)
-    .all(eventId) as ClaimedCode[];
+    .prepare(
+      `SELECT id, address, claimed_by AS claimedBy, claimed_at AS claimedAt,
+         checkin_status AS checkinStatus, checkin_answer AS checkinAnswer
+       FROM codes WHERE event_id = ? AND claimed_by IS NOT NULL ORDER BY claimed_at, id`,
+    )
+    .all(eventId) as ClaimRecord[];
 }
 
 /** Marks the check-in as sent unless another run already did. Returns true when this call claimed it. */
