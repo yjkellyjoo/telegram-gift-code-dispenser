@@ -56,3 +56,22 @@ export function assignNextCode(
   db.prepare('UPDATE codes SET claimed_by = ?, claimed_at = ? WHERE id = ?').run(userId, now, next.id);
   return { privateKey: next.privateKey, address: next.address };
 }
+
+export interface ClaimedCode {
+  id: number;
+  privateKey: string | null;
+  address: string;
+  claimedBy: number;
+  claimedAt: number;
+  checkinStatus: CheckinStatus | null;
+  checkinAnswer: CheckinAnswer | null;
+}
+
+const CLAIMED = `SELECT id, private_key AS privateKey, address, claimed_by AS claimedBy, claimed_at AS claimedAt,
+  checkin_status AS checkinStatus, checkin_answer AS checkinAnswer FROM codes`;
+
+export function findCodeByClaimer(db: Db, eventId: number, userId: number): ClaimedCode | undefined {
+  return db.prepare(`${CLAIMED} WHERE event_id = ? AND claimed_by = ?`).get(eventId, userId) as
+    | ClaimedCode
+    | undefined;
+}

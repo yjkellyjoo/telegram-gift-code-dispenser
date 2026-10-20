@@ -3,7 +3,7 @@ import type { Update, UserFromGetMe } from 'grammy/types';
 import type { Clock } from '../clock.js';
 import { errorFields, type Logger } from '../log.js';
 import { openDatabase } from '../store/db.js';
-import { startReply, textReply } from './claim-flow.js';
+import { myCodeReply, startReply, textReply } from './claim-flow.js';
 import type { Flow, Reply } from './flow.js';
 import { msg } from './messages.js';
 import { createRateLimiter, DEFAULT_RATE_LIMIT, type RateLimit } from './rate-limit.js';
@@ -47,7 +47,11 @@ export function createBot(deps: BotDeps): DispenserBot {
   priv.use(async (ctx, next) => {
     if (allow(ctx.from.id)) await next();
   });
-  priv.command('start', (ctx) => ctx.reply(startReply(flow)));
+  priv.command('start', (ctx) => ctx.reply(startReply(flow, ctx.from.id)));
+  priv.command('mycode', async (ctx) => {
+    const reply = myCodeReply(flow, ctx.from.id);
+    await ctx.reply(reply.text, options(reply));
+  });
   priv.on('message:text', async (ctx) => {
     let outcome;
     try {
