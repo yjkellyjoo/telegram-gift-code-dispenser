@@ -10,6 +10,8 @@ export interface EventRow {
   closesAt: number;
   closedAt: number | null;
   groupChatId: number;
+  /** The group's name as Telegram gave it at `event create`, or at the last `event edit --group`. */
+  groupTitle: string;
   passphraseHash: string | null;
   maxAttempts: number;
   instructions: string;
@@ -24,7 +26,16 @@ export interface EventRow {
 
 export type NewEvent = Pick<
   EventRow,
-  'title' | 'tz' | 'opensAt' | 'closesAt' | 'groupChatId' | 'maxAttempts' | 'instructions' | 'tripCount' | 'tripSeconds'
+  | 'title'
+  | 'tz'
+  | 'opensAt'
+  | 'closesAt'
+  | 'groupChatId'
+  | 'groupTitle'
+  | 'maxAttempts'
+  | 'instructions'
+  | 'tripCount'
+  | 'tripSeconds'
 > & { passphraseHash: string };
 
 export type EventPatch = Partial<Omit<EventRow, 'id'>>;
@@ -36,6 +47,7 @@ const COLUMN: Record<keyof EventPatch, string> = {
   closesAt: 'closes_at',
   closedAt: 'closed_at',
   groupChatId: 'group_chat_id',
+  groupTitle: 'group_title',
   passphraseHash: 'passphrase_hash',
   maxAttempts: 'max_attempts',
   instructions: 'instructions',
@@ -59,9 +71,9 @@ export function getEvent(db: Db): EventRow | undefined {
 
 export function insertEvent(db: Db, event: NewEvent): void {
   db.prepare(
-    `INSERT INTO events (title, tz, opens_at, closes_at, group_chat_id, passphrase_hash,
+    `INSERT INTO events (title, tz, opens_at, closes_at, group_chat_id, group_title, passphrase_hash,
        max_attempts, instructions, trip_count, trip_seconds)
-     VALUES (@title, @tz, @opensAt, @closesAt, @groupChatId, @passphraseHash,
+     VALUES (@title, @tz, @opensAt, @closesAt, @groupChatId, @groupTitle, @passphraseHash,
        @maxAttempts, @instructions, @tripCount, @tripSeconds)`,
   ).run(event);
 }

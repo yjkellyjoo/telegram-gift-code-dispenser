@@ -16,11 +16,12 @@ beforeEach(async () => {
 afterEach(() => h.close());
 
 describe('claiming a code', () => {
-  test('/start explains what to do', async () => {
+  test('/start explains what to do, with the event and the group in bold', async () => {
     await h.say(ALICE, '/start');
     expect(h.lastTextTo(ALICE)).toBe(
-      "To get your gift code for Swarm booth, join the event's Telegram group, then send me the passphrase you were given.",
+      'To get your gift code for <b>Swarm booth</b>, join <b>Swarm booth chat</b> on Telegram, then send me the passphrase you were given.',
     );
+    expect(h.telegram.sent.at(-1)?.parseMode).toBe('HTML');
   });
 
   test('the right passphrase delivers the first code as a spoiler, with the address and instructions', async () => {
@@ -39,13 +40,18 @@ describe('claiming a code', () => {
     expect(h.lastTextTo(ALICE)).toBe(deliveryText(key(1), ADDRESS_1));
   });
 
-  test('escapes HTML in the title and instructions, so Telegram accepts the message', async () => {
+  test('escapes HTML in the title, group name and instructions, so Telegram accepts the messages', async () => {
     h.close();
     h = new Harness();
+    h.telegram.groupTitle = 'Swarm <3 & friends';
     writeFileSync(h.instructionsFile, 'Docs: https://docs.ethswarm.org/?a=1&b=<2>');
     await h.openEvent({ extra: ['--title', 'Swarm <3 & co'] });
+    await h.say(ALICE, '/start');
+    expect(h.lastTextTo(ALICE)).toMatch(
+      /^To get your gift code for <b>Swarm &lt;3 &amp; co<\/b>, join <b>Swarm &lt;3 &amp; friends<\/b> on Telegram,/,
+    );
     await h.say(ALICE, PASSPHRASE);
-    expect(h.lastTextTo(ALICE)).toMatch(/^Your gift code for Swarm &lt;3 &amp; co:\n/);
+    expect(h.lastTextTo(ALICE)).toMatch(/^Your gift code for <b>Swarm &lt;3 &amp; co<\/b>:\n/);
     expect(h.lastTextTo(ALICE)).toContain('\nDocs: https://docs.ethswarm.org/?a=1&amp;b=&lt;2&gt;\n');
   });
 

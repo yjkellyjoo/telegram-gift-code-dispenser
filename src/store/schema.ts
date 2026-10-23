@@ -53,4 +53,7 @@ export const MIGRATIONS: readonly string[] = [
     PRIMARY KEY (event_id, telegram_user_id)
   );
   `,
+  `
+  ALTER TABLE events ADD COLUMN group_title TEXT NOT NULL DEFAULT '';
+  `,
 ];

@@ -19,8 +19,8 @@ const triesLeftAfterOneWrong = async (): Promise<string | undefined> => {
 
 describe('group membership', () => {
   test.each<[MemberStatus, string]>([
-    ['left', 'This is for members of the Swarm booth group. Join it, then send the passphrase again.'],
-    ['kicked', 'This is for members of the Swarm booth group. Join it, then send the passphrase again.'],
+    ['left', 'This is for members of <b>Swarm booth chat</b>. Join it, then send the passphrase again.'],
+    ['kicked', 'This is for members of <b>Swarm booth chat</b>. Join it, then send the passphrase again.'],
     ['restricted', "Finish the group's verification first, then send the passphrase again."],
   ])('%s: refused before the passphrase is checked, and no try is used', async (status, reply) => {
     h.telegram.setStatus(GROUP_ID, ALICE, status);
@@ -29,10 +29,16 @@ describe('group membership', () => {
     expect(await triesLeftAfterOneWrong()).toBe("That's not it. 4 tries left.");
   });
 
+  test('the not-a-member reply names the group in bold', async () => {
+    h.telegram.setStatus(GROUP_ID, ALICE, 'left');
+    await h.say(ALICE, PASSPHRASE);
+    expect(h.telegram.sent.at(-1)?.parseMode).toBe('HTML');
+  });
+
   test.each<MemberStatus>(['creator', 'administrator', 'member'])('%s: may claim', async (status) => {
     h.telegram.setStatus(GROUP_ID, ALICE, status);
     await h.say(ALICE, PASSPHRASE);
-    expect(h.lastTextTo(ALICE)).toMatch(/^Your gift code for Swarm booth:/);
+    expect(h.lastTextTo(ALICE)).toMatch(/^Your gift code for <b>Swarm booth<\/b>:/);
   });
 
   test('a failed lookup fails closed: no code, and no try used', async () => {
@@ -46,6 +52,6 @@ describe('group membership', () => {
     await h.say(ALICE, PASSPHRASE);
     h.telegram.setStatus(GROUP_ID, ALICE, 'left');
     await h.say(ALICE, '/mycode');
-    expect(h.lastTextTo(ALICE)).toMatch(/^Your gift code for Swarm booth:/);
+    expect(h.lastTextTo(ALICE)).toMatch(/^Your gift code for <b>Swarm booth<\/b>:/);
   });
 });

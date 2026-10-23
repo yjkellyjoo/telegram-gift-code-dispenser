@@ -1,5 +1,5 @@
 import { Bot, BotError, type Context, type Middleware, type Transformer } from 'grammy';
-import type { Update, UserFromGetMe } from 'grammy/types';
+import type { Update, User, UserFromGetMe } from 'grammy/types';
 import type { Clock } from '../clock.js';
 import { errorFields, type Logger } from '../log.js';
 import { openDatabase } from '../store/db.js';
@@ -51,14 +51,18 @@ export function createBot(deps: BotDeps): DispenserBot {
   priv.use(async (ctx, next) => {
     if (allow(ctx.from.id)) await next();
   });
-  priv.command('start', (ctx) => ctx.reply(startReply(flow, ctx.from.id)));
+  const replyStart = (ctx: Context & { from: User }) => {
+    const reply = startReply(flow, ctx.from.id);
+    return ctx.reply(reply.text, options(reply));
+  };
+  priv.command('start', replyStart);
   priv.command('mycode', async (ctx) => {
     const reply = myCodeReply(flow, ctx.from.id);
     await ctx.reply(reply.text, options(reply));
   });
   priv.on('message:text', async (ctx) => {
     if (ctx.message.text.startsWith('/')) {
-      await ctx.reply(startReply(flow, ctx.from.id));
+      await replyStart(ctx);
       return;
     }
     let outcome;
@@ -79,7 +83,7 @@ export function createBot(deps: BotDeps): DispenserBot {
     const text = checkinTap(flow, ctx.from.id, ctx.callbackQuery.data);
     await ctx.answerCallbackQuery(text === null ? undefined : { text });
   });
-  priv.on('message', (ctx) => ctx.reply(startReply(flow, ctx.from.id)));
+  priv.on('message', replyStart);
   bot.on('callback_query', (ctx) => ctx.answerCallbackQuery());
 
   bot.catch((err) => {

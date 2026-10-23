@@ -22,7 +22,7 @@ export const INSTRUCTIONS = 'Import the key into your Bee node: https://docs.eth
 /** The code message as spec §8.6 words it, written out by hand. */
 export function deliveryText(privateKey: string, address: string, title = 'Swarm booth'): string {
   return [
-    `Your gift code for ${title}:`,
+    `Your gift code for <b>${title}</b>:`,
     `<tg-spoiler><code>${privateKey}</code></tg-spoiler>`,
     `Wallet address: <code>${address}</code>`,
     '',

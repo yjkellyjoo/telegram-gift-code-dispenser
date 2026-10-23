@@ -128,6 +128,7 @@ export async function eventCreate(env: CommandEnv): Promise<void> {
     opensAt,
     closesAt,
     groupChatId,
+    groupTitle,
     passphraseHash: await hashPassphrase(passphrase),
     maxAttempts,
     instructions,
@@ -168,7 +169,7 @@ export async function eventEdit(env: CommandEnv): Promise<void> {
   if (values['trip-rate'] !== undefined) Object.assign(patch, tripRate(values['trip-rate']));
   if (values.group !== undefined) {
     patch.groupChatId = groupId(values.group);
-    await requireBotAdmin(env.api(), patch.groupChatId);
+    patch.groupTitle = await requireBotAdmin(env.api(), patch.groupChatId);
   }
 
   const changed = Object.keys(patch);

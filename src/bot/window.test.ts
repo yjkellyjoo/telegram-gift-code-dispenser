@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { Harness, PASSPHRASE } from '../test/harness.js';
+import { GROUP_ID, Harness, PASSPHRASE } from '../test/harness.js';
 import { key } from '../test/keys.js';
 
 const ALICE = 5001;
@@ -27,7 +27,7 @@ describe('the event window', () => {
     await h.say(BOB, PASSPHRASE);
     expect(h.lastTextTo(BOB)).toBe('No event is open right now.');
     await h.say(ALICE, '/mycode');
-    expect(h.lastTextTo(ALICE)).toMatch(/^Your gift code for Swarm booth:/);
+    expect(h.lastTextTo(ALICE)).toMatch(/^Your gift code for <b>Swarm booth<\/b>:/);
   });
 
   test('event close stops claims at once and reports the counts', async () => {
@@ -74,7 +74,15 @@ describe('dispenser event edit', () => {
     expect(result.stdout).toBe('updated title, closesAt\n');
     h.clock.set('2026-11-14T19:00:00Z');
     await h.say(ALICE, '/start');
-    expect(h.lastTextTo(ALICE)).toMatch(/^To get your gift code for Swarm booth day 2,/);
+    expect(h.lastTextTo(ALICE)).toMatch(/^To get your gift code for <b>Swarm booth day 2<\/b>,/);
+  });
+
+  test('--group reads the group name again, so a renamed group shows its new name', async () => {
+    h.telegram.groupTitle = 'Swarm booth lounge';
+    const result = await h.cli(['event', 'edit', `--group=${GROUP_ID}`]);
+    expect(result.stdout).toBe('updated groupChatId, groupTitle\n');
+    await h.say(ALICE, '/start');
+    expect(h.lastTextTo(ALICE)).toContain(', join <b>Swarm booth lounge</b> on Telegram,');
   });
 
   test('--opens can only change before opening', async () => {
@@ -100,7 +108,7 @@ describe('dispenser event edit', () => {
     await h.say(ALICE, PASSPHRASE);
     expect(h.lastTextTo(ALICE)).toBe("That's not it. 4 tries left.");
     await h.say(ALICE, 'acid acorn acre');
-    expect(h.lastTextTo(ALICE)).toMatch(/^Your gift code for Swarm booth:/);
+    expect(h.lastTextTo(ALICE)).toMatch(/^Your gift code for <b>Swarm booth<\/b>:/);
   });
 
   test('refuses an edit with no flags', async () => {

@@ -215,7 +215,7 @@ Setup steps:
    Telegram only guarantees membership lookups to bots that are admins.
 3. Take the chat ID from the bot's "I'm now an admin" message.
    Promoting the bot can convert a basic group into a supergroup, which changes its ID; the message is sent after that change, so it carries the final ID.
-4. Pass the ID as `event create --group=<id>`, which checks live that the bot is an admin there and shows the group title for confirmation.
+4. Pass the ID as `event create --group=<id>`, which checks live that the bot is an admin there, shows the group title for confirmation, and saves it for the bot's replies.
    The `=` form is required because the ID starts with a minus sign.
 
 ## 7. Data model
@@ -228,6 +228,7 @@ The tables keep an `event_id` anyway, so supporting several events later is a mi
 ### `meta`
 
 `schema_version`.
+The bot and the CLI refuse a database whose version differs from the build's, so a database made by an older build is recreated with `init`, not opened.
 
 ### `events`
 
@@ -239,6 +240,7 @@ The tables keep an `event_id` anyway, so supporting several events later is a mi
 | `opens_at`, `closes_at` | The window; `opens_at < closes_at` |
 | `closed_at` | Set by an early close |
 | `group_chat_id` | The event group |
+| `group_title` | The group's name, read from Telegram by `event create` and `event edit --group`; shown to claimants |
 | `passphrase_hash` | scrypt (N = 2^14, r = 8, p = 1) with a random salt, encoded with its parameters; null after the wipe |
 | `max_attempts` | Default 5 |
 | `instructions` | Operator-written plain text, sent with every code |
@@ -289,7 +291,8 @@ A paused or closed event keeps re-sending codes already assigned until the wipe;
 
 `/start`:
 
-- When the event is open: "To get your gift code for <title>, join the event's Telegram group, then send me the passphrase you were given."
+- When the event is open: "To get your gift code for <title>, join <group title> on Telegram, then send me the passphrase you were given."
+  It is sent as Telegram HTML, with `<title>` and `<group title>` HTML-escaped and in bold.
   An account that already has a code also gets: "You already have a code. Send /mycode to see it again."
 - Otherwise: "No event is open right now."
 
@@ -307,7 +310,7 @@ Any other text message is handled in this order, and the first matching row answ
 | 2 | The event is not open | "No event is open right now." | No |
 | 3 | The event is paused | "Claims are paused. Please check back soon." | No |
 | 4 | The membership lookup fails | "Couldn't check the group right now. Please try again in a minute." | No |
-| 5 | Not a member | "This is for members of the <title> group. Join it, then send the passphrase again." | No |
+| 5 | Not a member | "This is for members of <group title>. Join it, then send the passphrase again.", sent as HTML with the name escaped and in bold | No |
 | 6 | Restricted in the group | "Finish the group's verification first, then send the passphrase again." | No |
 | 7 | Locked out | "Too many wrong tries. Show this to the organizers: ID <telegram user id>" | No |
 | 8 | No unclaimed codes left | "All codes have been claimed." | No |
@@ -367,7 +370,7 @@ The transaction commits before the message is sent.
 The message uses Telegram HTML, and every inserted value is HTML-escaped:
 
 ```
-Your gift code for <title>:
+Your gift code for <b><title></b>:
 <tg-spoiler><code>0x…key…</code></tg-spoiler>
 Wallet address: <code>0x…address…</code>
 
@@ -558,6 +561,7 @@ Recent    14:31:05  482130001  0x3fA1…92c0
   `--passphrase-generate` (or `event passphrase --generate`) instead picks 3 words from the EFF short word list (about 31 bits) and prints them once.
   The prompt refuses a passphrase of more than 200 characters or one starting with "/", because the bot counts longer text as a wrong try and reads text starting with "/" as a command.
 - `--group` is confirmed live against Telegram: the bot must be an admin in that chat.
+  The group's name is saved with it, so after renaming the group, `event edit --group=<same id>` makes the bot show the new name.
 - `event edit` takes any create flag except the passphrase until the event closes.
   `--opens` can change only before the event opens, and `--closes` must stay in the future.
   A closed event never reopens.

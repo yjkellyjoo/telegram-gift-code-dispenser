@@ -42,7 +42,7 @@ describe('passphrase tries', () => {
     await guessWrong(5);
     expect((await h.cli(['unlock', '5001'])).stdout).toBe('unlocked 5001; they can try the passphrase again\n');
     await h.say(ALICE, PASSPHRASE);
-    expect(h.lastTextTo(ALICE)).toMatch(/^Your gift code for Swarm booth:/);
+    expect(h.lastTextTo(ALICE)).toMatch(/^Your gift code for <b>Swarm booth<\/b>:/);
   });
 
   test('unlock refuses an account with no wrong tries', async () => {
@@ -51,7 +51,7 @@ describe('passphrase tries', () => {
 
   test('unlock refuses an account that only ever sent the right passphrase', async () => {
     await h.say(ALICE, PASSPHRASE);
-    expect(h.lastTextTo(ALICE)).toMatch(/^Your gift code for Swarm booth:/);
+    expect(h.lastTextTo(ALICE)).toMatch(/^Your gift code for <b>Swarm booth<\/b>:/);
     const result = await h.cli(['unlock', '5001']);
     expect(result.code).toBe(1);
     expect(result.stderr).toBe('error: no wrong tries recorded for 5001\n');
@@ -60,7 +60,7 @@ describe('passphrase tries', () => {
   test('the right passphrase after 4 wrong ones delivers the code and gives the try back', async () => {
     await guessWrong(4);
     await h.say(ALICE, PASSPHRASE);
-    expect(h.lastTextTo(ALICE)).toMatch(/^Your gift code for Swarm booth:/);
+    expect(h.lastTextTo(ALICE)).toMatch(/^Your gift code for <b>Swarm booth<\/b>:/);
     expect((await h.cli(['status'])).stdout).toMatch(/^Lockouts {2}0$/m);
   });
 

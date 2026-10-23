@@ -14,11 +14,12 @@ function codeReply(event: EventRow, code: { privateKey: string; address: string 
   return { text: renderDelivery(event.title, event.instructions, code), html: true };
 }
 
-export function startReply(flow: Flow, userId: number): string {
+export function startReply(flow: Flow, userId: number): Reply {
   const event = getEvent(flow.db);
-  if (!event || eventState(event, flow.clock.now()) !== 'open') return msg.noEventOpen;
+  if (!event || eventState(event, flow.clock.now()) !== 'open') return plain(msg.noEventOpen);
+  const start = msg.start(event.title, event.groupTitle);
   const hasCode = findCodeByClaimer(flow.db, event.id, userId) !== undefined;
-  return hasCode ? `${msg.start(event.title)}\n\n${msg.startHasCode}` : msg.start(event.title);
+  return { text: hasCode ? `${start}\n\n${msg.startHasCode}` : start, html: true };
 }
 
 export function myCodeReply(flow: Flow, userId: number): Reply {
@@ -56,7 +57,7 @@ export async function textReply(api: Api, flow: Flow, userId: number, text: stri
     log.warn('membership lookup failed', { user: userId, ...errorFields(err) });
     return { reply: plain(msg.lookupFailed) };
   }
-  if (membership === 'not_member') return { reply: plain(msg.notMember(event.title)) };
+  if (membership === 'not_member') return { reply: { text: msg.notMember(event.groupTitle), html: true } };
   if (membership === 'restricted') return { reply: plain(msg.restricted) };
 
   if (failuresOf(db, event.id, userId) >= event.maxAttempts) return { reply: plain(msg.lockedOut(userId)) };

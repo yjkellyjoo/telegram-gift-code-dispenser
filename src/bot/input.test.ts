@@ -3,7 +3,8 @@ import { GROUP_ID, Harness, PASSPHRASE } from '../test/harness.js';
 import { callbackUpdate, locationUpdate, supergroup, textUpdate } from '../test/updates.js';
 
 const ALICE = 5001;
-const START = "To get your gift code for Swarm booth, join the event's Telegram group, then send me the passphrase you were given.";
+const START =
+  'To get your gift code for <b>Swarm booth</b>, join <b>Swarm booth chat</b> on Telegram, then send me the passphrase you were given.';
 
 let h: Harness;
 beforeEach(async () => {
