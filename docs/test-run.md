@@ -29,7 +29,11 @@ B claims first on purpose: B gets the funded key, and B is the claimant `stats` 
 - [ ] Add the bot to the group from A and promote it with every right off: the bot messages A "I'm now an admin in …" with the chat ID.
 - [ ] If the group became a supergroup, the ID in that message starts with `-100`; use that one (spec §15).
       Keep this ID: the real event uses it too.
-- [ ] Put `instructions.txt` in the current directory, then run `dispenser event create --title "Test run" --group=<id> --opens "<a few minutes ago>" --closes "<this evening>" --instructions instructions.txt`, with the window open now.
+- [ ] Put `instructions.txt` in the current directory, then run `dispenser event create --title "Test run" --group=<id> --opens "YYYY-MM-DD HH:mm" --closes "YYYY-MM-DD HH:mm" --instructions instructions.txt`, for example `--opens "2026-10-22 14:30" --closes "2026-10-22 21:00"`.
+      Write each time as `YYYY-MM-DD HH:mm`, in quotes: a 24-hour clock, leading zeros (`09:05`, `2026-10-02`), one space between date and time, no seconds and no time zone.
+      Times are read in the `TZ` from `bot.env`; `--tz <zone>` overrides it for this event.
+      Pick an opening time already past and a closing time later than the test will take; the After section closes the event early.
+      It prints `open from … to …`: check the window includes now.
       It asks for the passphrase twice, so run it on the Pi or over `ssh -t`.
       Type a test passphrase, not the event's: B and C will learn it.
       To have the CLI pick three random words instead, add `--passphrase-generate`; it prints them once.
