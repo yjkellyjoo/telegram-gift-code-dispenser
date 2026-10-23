@@ -8,6 +8,7 @@ export interface Sent {
   chatId: number;
   text: string;
   parseMode: string | undefined;
+  linkPreview: unknown;
   replyMarkup: unknown;
 }
 
@@ -107,7 +108,10 @@ export class TelegramFake {
       case 'sendMessage': {
         const chatId = Number(p.chat_id);
         const text = String(p.text);
-        this.sent.push({ chatId, text, parseMode: p.parse_mode as string | undefined, replyMarkup: p.reply_markup });
+        this.sent.push({
+          chatId, text, parseMode: p.parse_mode as string | undefined, linkPreview: p.link_preview_options,
+          replyMarkup: p.reply_markup,
+        });
         return {
           message_id: this.sent.length, date: 1_794_650_400,
           chat: { id: chatId, type: 'private', first_name: `User${chatId}` }, text,

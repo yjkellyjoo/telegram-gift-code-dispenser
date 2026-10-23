@@ -43,7 +43,11 @@ export function createBot(deps: BotDeps): DispenserBot {
 
   const flow: Flow = { db, clock: deps.clock, log: deps.log, adminUserId: deps.adminUserId, botId: deps.botInfo.id };
   const allow = createRateLimiter(deps.clock, deps.rateLimit ?? DEFAULT_RATE_LIMIT);
-  const options = (reply: Reply) => (reply.html ? { parse_mode: 'HTML' as const } : {});
+  // No reply gets a link preview card, so the code message ends with the instructions.
+  const options = (reply: Reply) => ({
+    link_preview_options: { is_disabled: true },
+    ...(reply.html ? { parse_mode: 'HTML' as const } : {}),
+  });
 
   bot.on('my_chat_member', (ctx) => handleGroupStatus(ctx.api, flow, ctx.myChatMember));
 

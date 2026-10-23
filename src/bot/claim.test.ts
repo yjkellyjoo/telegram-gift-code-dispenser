@@ -55,13 +55,14 @@ describe('claiming a code', () => {
     expect(h.lastTextTo(ALICE)).toContain('\nDocs: https://docs.ethswarm.org/?a=1&amp;b=&lt;2&gt;\n');
   });
 
-  test("the instructions' Markdown is formatted in the code message", async () => {
+  test("the instructions' Markdown is formatted in the code message, with no link preview card", async () => {
     h.close();
     h = new Harness();
     writeFileSync(h.instructionsFile, '## Use it\n- Get [Nook](https://example.com/nook) and press **Redeem**');
     await h.openEvent();
     await h.say(ALICE, PASSPHRASE);
     expect(h.lastTextTo(ALICE)).toContain('\n\n<b>Use it</b>\n• Get <a href="https://example.com/nook">Nook</a> and press <b>Redeem</b>\n\n');
+    expect(h.telegram.sent.at(-1)?.linkPreview).toEqual({ is_disabled: true });
   });
 
   test('a wrong passphrase says how many tries are left', async () => {

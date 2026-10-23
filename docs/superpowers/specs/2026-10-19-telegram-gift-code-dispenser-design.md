@@ -367,7 +367,7 @@ The transaction commits before the message is sent.
 
 ### 8.6 Delivery
 
-The message uses Telegram HTML, and every inserted value is HTML-escaped:
+The message uses Telegram HTML, every inserted value is HTML-escaped, and it is sent with link previews off, so it ends with the instructions rather than a preview card:
 
 ```
 Your gift code for <b><title></b>:

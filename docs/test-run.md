@@ -48,7 +48,7 @@ B claims first on purpose: B gets the funded key, and B is the claimant `stats` 
 - [ ] B joins the group but does not solve Rose's captcha: the passphrase gets "Finish the group's verification first, …".
       This confirms that an unverified member shows as `restricted` (spec §15).
 - [ ] B solves the captcha and sends the passphrase again: B gets a code, hidden as a spoiler, with the key in monospace inside it (spec §15).
-      Below it, the instructions show their bold lines, bullets and links.
+      Below it, the instructions show their bold lines, bullets and links, and no link preview card ends the message.
       This is the first claim, so it is the funded key.
 - [ ] B sends `/mycode`: the same code comes back.
 - [ ] C joins the group and solves the captcha.
