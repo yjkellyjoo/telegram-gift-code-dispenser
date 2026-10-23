@@ -24,10 +24,10 @@ export function deliveryText(privateKey: string, address: string, title = 'Swarm
   return [
     `Your gift code for <b>${title}</b>:`,
     `<tg-spoiler><code>${privateKey}</code></tg-spoiler>`,
-    `Wallet address: <code>${address}</code>`,
     '',
     INSTRUCTIONS,
     '',
+    `<a href="https://gnosisscan.io/address/${address}">See this code's balance</a>`,
     'Save your code somewhere safe now: the bot deletes all codes shortly after the event.',
     'Lost this message? Send /mycode to see it again.',
   ].join('\n');

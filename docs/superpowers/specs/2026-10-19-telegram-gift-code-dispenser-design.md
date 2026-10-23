@@ -96,7 +96,7 @@ Accepted risks:
 | Host | The admin's Raspberry Pi 5 (8 GB, SSD); the admin is the sole operator |
 | Deployment | Hardened Docker Compose |
 | Stack | TypeScript on Node.js LTS: grammY, better-sqlite3, ethers v6, pnpm, Vitest |
-| Delivery | Tap-to-reveal spoiler, the address, and the event's instructions; `/mycode` re-sends the same code until the wipe |
+| Delivery | Tap-to-reveal spoiler, the event's instructions, and a link to the code's balance; `/mycode` re-sends the same code until the wipe |
 | Keys at rest | Plain text in SQLite, readable only by the container user; kept for a short window |
 | After close | Export unclaimed keys, sweep them with Recover Funds, then wipe every key; the claim log stays |
 | Admin messages | Breaker trips and the bot's status in groups, sent to the admin's private chat |
@@ -372,13 +372,16 @@ The message uses Telegram HTML, every inserted value is HTML-escaped, and it is 
 ```
 Your gift code for <b><title></b>:
 <tg-spoiler><code>0x…key…</code></tg-spoiler>
-Wallet address: <code>0x…address…</code>
 
 <instructions>
 
+<a href="https://gnosisscan.io/address/0x…address…">See this code's balance</a>
 Save your code somewhere safe now: the bot deletes all codes shortly after the event.
 Lost this message? Send /mycode to see it again.
 ```
+
+The address appears only inside the balance link at the end, because claimants who saw it as text took it for something they had to enter.
+`gnosis.blockscout.com` now redirects to `gnosisscan.io`, so the link goes there directly.
 
 The instructions file is Markdown, converted to Telegram HTML by the bot, because Telegram's own MarkdownV2 is not ordinary Markdown and rejects a whole message over one unescaped `.` or `-`:
 

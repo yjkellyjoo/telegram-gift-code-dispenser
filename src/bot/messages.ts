@@ -28,16 +28,22 @@ export interface Delivery {
   address: string;
 }
 
-/** The code message. With html = false it is the text Telegram shows, used to check the length limit. */
+/** gnosis.blockscout.com redirects here. */
+const EXPLORER_URL = 'https://gnosisscan.io';
+
+/**
+ * The code message. With html = false it is the text Telegram shows, used to check the length limit.
+ * The address is only a balance link at the end, so nobody takes it for something to enter.
+ */
 export function renderDelivery(title: string, instructions: string, code: Delivery, html = true): string {
-  const text = html ? escapeHtml : (t: string) => t;
+  const balance = "See this code's balance";
   return [
     `Your gift code for ${html ? bold(title) : title}:`,
-    html ? `<tg-spoiler><code>${text(code.privateKey)}</code></tg-spoiler>` : code.privateKey,
-    `Wallet address: ${html ? `<code>${text(code.address)}</code>` : code.address}`,
+    html ? `<tg-spoiler><code>${escapeHtml(code.privateKey)}</code></tg-spoiler>` : code.privateKey,
     '',
     renderMarkdown(instructions, html),
     '',
+    html ? `<a href="${EXPLORER_URL}/address/${escapeHtml(code.address)}">${balance}</a>` : balance,
     'Save your code somewhere safe now: the bot deletes all codes shortly after the event.',
     'Lost this message? Send /mycode to see it again.',
   ].join('\n');
