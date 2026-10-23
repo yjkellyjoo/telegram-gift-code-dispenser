@@ -96,7 +96,7 @@ Accepted risks:
 | Host | The admin's Raspberry Pi 5 (8 GB, SSD); the admin is the sole operator |
 | Deployment | Hardened Docker Compose |
 | Stack | TypeScript on Node.js LTS: grammY, better-sqlite3, ethers v6, pnpm, Vitest |
-| Delivery | Tap-to-reveal spoiler, the event's instructions, and a link to the code's balance; `/mycode` re-sends the same code until the wipe |
+| Delivery | Tap-to-reveal spoiler with a button that copies the key, the event's instructions, and a link to the code's balance; `/mycode` re-sends the same code until the wipe |
 | Keys at rest | Plain text in SQLite, readable only by the container user; kept for a short window |
 | After close | Export unclaimed keys, sweep them with Recover Funds, then wipe every key; the claim log stays |
 | Admin messages | Breaker trips and the bot's status in groups, sent to the admin's private chat |
@@ -371,7 +371,7 @@ The message uses Telegram HTML, every inserted value is HTML-escaped, and it is 
 
 ```
 Your gift code for <b><title></b>:
-<tg-spoiler><code>0x…key…</code></tg-spoiler>
+<tg-spoiler>0x…key…</tg-spoiler>
 
 <instructions>
 
@@ -379,6 +379,9 @@ Your gift code for <b><title></b>:
 Save your code somewhere safe now: the bot deletes all codes shortly after the event.
 Lost this message? Send /mycode to see it again.
 ```
+
+Under the message, one inline button, "📋 Copy gift code", is a `copy_text` button holding the key, so tapping it copies the key without revealing it.
+The key itself is a spoiler only, not monospace, because Telegram drops a spoiler around monospace text (§15).
 
 The address appears only inside the balance link at the end, because claimants who saw it as text took it for something they had to enter.
 `gnosis.blockscout.com` now redirects to `gnosisscan.io`, so the link goes there directly.
@@ -734,7 +737,7 @@ Each item has a fallback, so none blocks the design.
 
 | Assumption | Fallback if it does not hold |
 |---|---|
-| Telegram renders `<code>` nested inside `<tg-spoiler>` | Render the key as `<tg-spoiler>` only |
+| Telegram renders `<code>` nested inside `<tg-spoiler>` | Did not hold (test run, 2026-10-23): the key showed as monospace with no spoiler, as the Bot API says spoiler "can contain and can be part of any other entities, except pre and code". The key is now `<tg-spoiler>` only, with a `copy_text` button that copies it (§8.6) |
 | A member who passed Rose's captcha has status `member` | Also accept `restricted` when both `is_member` and `can_send_messages` are true |
 | Promoting the bot in a basic group sends a `my_chat_member` update from the new supergroup | The bot also reports the new ID from the `migrate_to_chat_id` service message |
 | `0x45a1502382541Cd610CC9068e88727426b696293` is the current PostageStamp contract on Gnosis | Verified 2026-10-20: Blockscout labels it "PostageStamp v2.1", and it receives `createBatch` calls daily |

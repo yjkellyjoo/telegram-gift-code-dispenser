@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { deliveryText, Harness, PASSPHRASE } from '../test/harness.js';
+import { copyButton, deliveryText, Harness, PASSPHRASE } from '../test/harness.js';
 import { ADDRESS_1, ADDRESS_2, key } from '../test/keys.js';
 import { textUpdate } from '../test/updates.js';
 
@@ -15,7 +15,7 @@ afterEach(() => h.close());
 
 /** The keys inside delivery messages. */
 const deliveredKeys = (texts: string[]): string[] =>
-  texts.flatMap((t) => /<tg-spoiler><code>(0x[0-9a-f]{64})<\/code>/.exec(t)?.[1] ?? []);
+  texts.flatMap((t) => /<tg-spoiler>(0x[0-9a-f]{64})<\/tg-spoiler>/.exec(t)?.[1] ?? []);
 
 describe('one code per account', () => {
   test('a second passphrase from the same account re-sends the same code', async () => {
@@ -62,6 +62,7 @@ describe('one code per account', () => {
     await h.say(ALICE, PASSPHRASE);
     await h.say(ALICE, '/mycode');
     expect(h.lastTextTo(ALICE)).toBe(deliveryText(key(1), ADDRESS_1));
+    expect(h.telegram.sent.at(-1)?.replyMarkup).toEqual(copyButton(key(1)));
   });
 
   test('/start mentions /mycode once the account has a code', async () => {

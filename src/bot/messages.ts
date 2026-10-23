@@ -1,3 +1,4 @@
+import type { InlineKeyboardMarkup } from 'grammy/types';
 import type { EventRow } from '../store/events.js';
 import { escapeHtml, renderMarkdown } from './markdown.js';
 
@@ -39,7 +40,7 @@ export function renderDelivery(title: string, instructions: string, code: Delive
   const balance = "See this code's balance";
   return [
     `Your gift code for ${html ? bold(title) : title}:`,
-    html ? `<tg-spoiler><code>${escapeHtml(code.privateKey)}</code></tg-spoiler>` : code.privateKey,
+    html ? `<tg-spoiler>${escapeHtml(code.privateKey)}</tg-spoiler>` : code.privateKey,
     '',
     renderMarkdown(instructions, html),
     '',
@@ -47,6 +48,13 @@ export function renderDelivery(title: string, instructions: string, code: Delive
     'Save your code somewhere safe now: the bot deletes all codes shortly after the event.',
     'Lost this message? Send /mycode to see it again.',
   ].join('\n');
+}
+
+/**
+ * Telegram drops a spoiler around monospace text, so the key is a plain spoiler and this button copies it without revealing it.
+ */
+export function copyKeyboard(privateKey: string): InlineKeyboardMarkup {
+  return { inline_keyboard: [[{ text: '📋 Copy gift code', copy_text: { text: privateKey } }]] };
 }
 
 export const MAX_MESSAGE_LENGTH = 4096;

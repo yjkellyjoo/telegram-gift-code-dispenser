@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { createBot } from './create-bot.js';
-import { ADMIN_ID, deliveryText, Harness, PASSPHRASE, TOKEN } from '../test/harness.js';
+import { ADMIN_ID, copyButton, deliveryText, Harness, PASSPHRASE, TOKEN } from '../test/harness.js';
 import { ADDRESS_1, key } from '../test/keys.js';
 
 const ALICE = 5001;
@@ -24,10 +24,11 @@ describe('claiming a code', () => {
     expect(h.telegram.sent.at(-1)?.parseMode).toBe('HTML');
   });
 
-  test('the right passphrase delivers the first code as a spoiler, with the address and instructions', async () => {
+  test('the right passphrase delivers the first code as a spoiler, with the instructions and a button that copies it', async () => {
     await h.say(ALICE, PASSPHRASE);
     expect(h.lastTextTo(ALICE)).toBe(deliveryText(key(1), ADDRESS_1));
     expect(h.telegram.sent.at(-1)?.parseMode).toBe('HTML');
+    expect(h.telegram.sent.at(-1)?.replyMarkup).toEqual(copyButton(key(1)));
   });
 
   test('the passphrase matches regardless of case and spacing', async () => {

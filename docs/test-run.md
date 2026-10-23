@@ -47,7 +47,8 @@ B claims first on purpose: B gets the funded key, and B is the claimant `stats` 
 - [ ] B is not in the group yet: B sends the passphrase and gets "This is for members of …".
 - [ ] B joins the group but does not solve Rose's captcha: the passphrase gets "Finish the group's verification first, …".
       This confirms that an unverified member shows as `restricted` (spec §15).
-- [ ] B solves the captcha and sends the passphrase again: B gets a code, hidden as a spoiler, with the key in monospace inside it (spec §15).
+- [ ] B solves the captcha and sends the passphrase again: B gets a code, hidden as a spoiler until tapped, with a "📋 Copy gift code" button under the message (spec §8.6).
+      Tapping the button copies the key without revealing it: paste it somewhere private to check.
       Below it, the instructions show their bold lines, bullets and links, and no link preview card ends the message.
       This is the first claim, so it is the funded key.
 - [ ] B sends `/mycode`: the same code comes back.

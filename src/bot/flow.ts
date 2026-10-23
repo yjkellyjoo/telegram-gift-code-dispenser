@@ -1,3 +1,4 @@
+import type { InlineKeyboardMarkup } from 'grammy/types';
 import type { Clock } from '../clock.js';
 import type { Logger } from '../log.js';
 import type { Db } from '../store/db.js';
@@ -14,6 +15,7 @@ export interface Flow {
 export interface Reply {
   text: string;
   html: boolean;
+  keyboard?: InlineKeyboardMarkup;
 }
 
 export const plain = (text: string): Reply => ({ text, html: false });

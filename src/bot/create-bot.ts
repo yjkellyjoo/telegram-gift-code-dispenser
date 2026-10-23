@@ -47,6 +47,7 @@ export function createBot(deps: BotDeps): DispenserBot {
   const options = (reply: Reply) => ({
     link_preview_options: { is_disabled: true },
     ...(reply.html ? { parse_mode: 'HTML' as const } : {}),
+    ...(reply.keyboard ? { reply_markup: reply.keyboard } : {}),
   });
 
   bot.on('my_chat_member', (ctx) => handleGroupStatus(ctx.api, flow, ctx.myChatMember));

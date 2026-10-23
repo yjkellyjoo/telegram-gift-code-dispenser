@@ -8,10 +8,10 @@ import { failuresOf, releaseTry, reserveTry, settleWrong } from '../store/attemp
 import { countCodes, findCodeByClaimer } from '../store/codes.js';
 import { getEvent, type EventRow } from '../store/events.js';
 import { plain, type Flow, type Reply } from './flow.js';
-import { msg, renderDelivery } from './messages.js';
+import { copyKeyboard, msg, renderDelivery } from './messages.js';
 
 function codeReply(event: EventRow, code: { privateKey: string; address: string }): Reply {
-  return { text: renderDelivery(event.title, event.instructions, code), html: true };
+  return { text: renderDelivery(event.title, event.instructions, code), html: true, keyboard: copyKeyboard(code.privateKey) };
 }
 
 export function startReply(flow: Flow, userId: number): Reply {

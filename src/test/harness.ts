@@ -23,7 +23,7 @@ export const INSTRUCTIONS = 'Import the key into your Bee node: https://docs.eth
 export function deliveryText(privateKey: string, address: string, title = 'Swarm booth'): string {
   return [
     `Your gift code for <b>${title}</b>:`,
-    `<tg-spoiler><code>${privateKey}</code></tg-spoiler>`,
+    `<tg-spoiler>${privateKey}</tg-spoiler>`,
     '',
     INSTRUCTIONS,
     '',
@@ -31,6 +31,11 @@ export function deliveryText(privateKey: string, address: string, title = 'Swarm
     'Save your code somewhere safe now: the bot deletes all codes shortly after the event.',
     'Lost this message? Send /mycode to see it again.',
   ].join('\n');
+}
+
+/** The button under the code message that copies the key, written out by hand. */
+export function copyButton(privateKey: string): unknown {
+  return { inline_keyboard: [[{ text: '📋 Copy gift code', copy_text: { text: privateKey } }]] };
 }
 
 export interface CliOptions {
