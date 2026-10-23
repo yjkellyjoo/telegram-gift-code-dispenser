@@ -243,7 +243,7 @@ The bot and the CLI refuse a database whose version differs from the build's, so
 | `group_title` | The group's name, read from Telegram by `event create` and `event edit --group`; shown to claimants |
 | `passphrase_hash` | scrypt (N = 2^14, r = 8, p = 1) with a random salt, encoded with its parameters; null after the wipe |
 | `max_attempts` | Default 5 |
-| `instructions` | Operator-written plain text, sent with every code |
+| `instructions` | Operator-written Markdown (§8.6), sent with every code |
 | `trip_count`, `trip_seconds` | Claim-burst limit; default 5 claims per 60 seconds |
 | `paused_at`, `paused_reason` | Set by a breaker trip (`burst`) or a manual pause (`manual`) |
 | `resumed_at` | Set by `resume`; the burst window never reaches back past it |
@@ -380,7 +380,23 @@ Save your code somewhere safe now: the bot deletes all codes shortly after the e
 Lost this message? Send /mycode to see it again.
 ```
 
-`event create` and `event edit` refuse instructions that would push the message over Telegram's 4,096-character limit.
+The instructions file is Markdown, converted to Telegram HTML by the bot, because Telegram's own MarkdownV2 is not ordinary Markdown and rejects a whole message over one unescaped `.` or `-`:
+
+| Markdown | Telegram shows |
+|---|---|
+| `# Heading` to `###### Heading` | A bold line; Telegram has no headings |
+| `**bold**` | Bold |
+| `_italic_` or `*italic*` | Italic, opened only at the start of a word, so `snake_case` and `2 * 3` stay text |
+| `` `code` `` | Monospace, its content shown as written |
+| `[text](https://…)` | A link; its text may be bold or italic |
+| `- item`, `* item` or `+ item` | `• item`, keeping the indent |
+| `\*` and other backslash-escaped punctuation | The character itself |
+
+Everything else, numbered lists and bare URLs included, is shown as written, and Telegram makes bare URLs clickable.
+The converter writes only tags it also closes and escapes all other text, so a typo such as an unclosed `**` shows as text and cannot make a delivery fail.
+
+`event create` and `event edit` refuse a `[text](url)` link whose URL does not start with `http://` or `https://`, naming its line.
+They also refuse instructions that would push the message over Telegram's 4,096-character limit, counted as Telegram shows the text, without the markup.
 
 ### 8.7 Failure handling
 

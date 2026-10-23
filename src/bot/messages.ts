@@ -1,4 +1,5 @@
 import type { EventRow } from '../store/events.js';
+import { escapeHtml, renderMarkdown } from './markdown.js';
 
 /** Plain text, except `start` and `notMember`: those are HTML, with the names escaped and in bold. */
 export const msg = {
@@ -18,10 +19,6 @@ export const msg = {
   somethingWrong: 'Something went wrong. Please try again later.',
 };
 
-export function escapeHtml(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
 function bold(text: string): string {
   return `<b>${escapeHtml(text)}</b>`;
 }
@@ -39,7 +36,7 @@ export function renderDelivery(title: string, instructions: string, code: Delive
     html ? `<tg-spoiler><code>${text(code.privateKey)}</code></tg-spoiler>` : code.privateKey,
     `Wallet address: ${html ? `<code>${text(code.address)}</code>` : code.address}`,
     '',
-    text(instructions),
+    renderMarkdown(instructions, html),
     '',
     'Save your code somewhere safe now: the bot deletes all codes shortly after the event.',
     'Lost this message? Send /mycode to see it again.',

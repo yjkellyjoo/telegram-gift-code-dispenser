@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
+import { firstBadLink } from '../../bot/markdown.js';
 import { deliveryLength, MAX_MESSAGE_LENGTH } from '../../bot/messages.js';
 import { eventState } from '../../core/event-state.js';
 import {
@@ -66,7 +67,9 @@ async function readInstructions(path: string): Promise<string> {
   }
 }
 
-function checkLength(title: string, instructions: string): void {
+function checkInstructions(title: string, instructions: string): void {
+  const bad = firstBadLink(instructions);
+  if (bad) throw new CliError(`the instructions link on line ${bad.line} must start with http:// or https://: ${bad.url}`);
   const length = deliveryLength(title, instructions);
   if (length > MAX_MESSAGE_LENGTH) {
     throw new CliError(
@@ -114,7 +117,7 @@ export async function eventCreate(env: CommandEnv): Promise<void> {
   if (opensAt >= closesAt) throw new CliError('--opens must be before --closes');
   if (closesAt <= now) throw new CliError('--closes must be in the future');
   const instructions = await readInstructions(required(values.instructions, '--instructions'));
-  checkLength(title, instructions);
+  checkInstructions(title, instructions);
   const maxAttempts = values['max-attempts'] ? intArg(values['max-attempts'], '--max-attempts', 1, 100) : 5;
   const trip = values['trip-rate'] ? tripRate(values['trip-rate']) : { tripCount: 5, tripSeconds: 60 };
   const groupChatId = groupId(required(values.group, '--group'));
@@ -162,7 +165,7 @@ export async function eventEdit(env: CommandEnv): Promise<void> {
     throw new CliError('--opens must be before --closes');
   }
   if (values.instructions !== undefined) patch.instructions = await readInstructions(values.instructions);
-  checkLength(patch.title ?? event.title, patch.instructions ?? event.instructions);
+  checkInstructions(patch.title ?? event.title, patch.instructions ?? event.instructions);
   if (values['max-attempts'] !== undefined) {
     patch.maxAttempts = intArg(values['max-attempts'], '--max-attempts', 1, 100);
   }

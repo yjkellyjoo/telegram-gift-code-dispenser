@@ -29,7 +29,7 @@ B claims first on purpose: B gets the funded key, and B is the claimant `stats` 
 - [ ] Add the bot to the group from A and promote it with every right off: the bot messages A "I'm now an admin in …" with the chat ID.
 - [ ] If the group became a supergroup, the ID in that message starts with `-100`; use that one (spec §15).
       Keep this ID: the real event uses it too.
-- [ ] Put `instructions.txt` in the current directory, then run `dispenser event create --title "Test run" --group=<id> --opens "YYYY-MM-DD HH:mm" --closes "YYYY-MM-DD HH:mm" --instructions instructions.txt`, for example `--opens "2026-10-22 14:30" --closes "2026-10-22 21:00"`.
+- [ ] Put the event's `instructions.md` in the current directory, then run `dispenser event create --title "Test run" --group=<id> --opens "YYYY-MM-DD HH:mm" --closes "YYYY-MM-DD HH:mm" --instructions instructions.md`, for example `--opens "2026-10-22 14:30" --closes "2026-10-22 21:00"`.
       Write each time as `YYYY-MM-DD HH:mm`, in quotes: a 24-hour clock, leading zeros (`09:05`, `2026-10-02`), one space between date and time, no seconds and no time zone.
       Times are read in the `TZ` from `bot.env`; `--tz <zone>` overrides it for this event.
       Pick an opening time already past and a closing time later than the test will take; the After section closes the event early.
@@ -48,6 +48,7 @@ B claims first on purpose: B gets the funded key, and B is the claimant `stats` 
 - [ ] B joins the group but does not solve Rose's captcha: the passphrase gets "Finish the group's verification first, …".
       This confirms that an unverified member shows as `restricted` (spec §15).
 - [ ] B solves the captcha and sends the passphrase again: B gets a code, hidden as a spoiler, with the key in monospace inside it (spec §15).
+      Below it, the instructions show their bold lines, bullets and links.
       This is the first claim, so it is the funded key.
 - [ ] B sends `/mycode`: the same code comes back.
 - [ ] C joins the group and solves the captcha.

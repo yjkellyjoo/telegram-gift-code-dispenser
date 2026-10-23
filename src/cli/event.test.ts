@@ -110,4 +110,18 @@ describe('dispenser event create', () => {
     writeFileSync(h.instructionsFile, 'x'.repeat(4000));
     expect((await h.createEvent()).stderr).toMatch(/^error: the code message would be 4\d{3} characters; Telegram allows 4096/);
   });
+
+  test('counts the instructions as Telegram shows them, so a long link URL does not count', async () => {
+    const { writeFileSync } = await import('node:fs');
+    writeFileSync(h.instructionsFile, `Get [Nook](https://example.com/${'x'.repeat(4000)})`);
+    expect((await h.createEvent()).stderr).toBe('');
+  });
+
+  test('refuses a link that does not start with http:// or https://, naming its line', async () => {
+    const { writeFileSync } = await import('node:fs');
+    writeFileSync(h.instructionsFile, '## Nook\nGet [Nook](github.com/GasperX93/nook) and `[ok](not-a-link)`');
+    expect((await h.createEvent()).stderr).toBe(
+      'error: the instructions link on line 2 must start with http:// or https://: github.com/GasperX93/nook\n',
+    );
+  });
 });

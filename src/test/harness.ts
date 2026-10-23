@@ -45,7 +45,7 @@ export interface CliOptions {
 export class Harness {
   readonly dir = mkdtempSync(join(tmpdir(), 'dispenser-'));
   readonly dataDir = this.dir;
-  readonly instructionsFile = join(this.dir, 'instructions.txt');
+  readonly instructionsFile = join(this.dir, 'instructions.md');
   readonly clock = new FakeClock(Date.parse('2026-11-14T09:00:00Z'));
   readonly telegram = new TelegramFake(BOT_ID, GROUP_ID);
   readonly logs: string[] = [];

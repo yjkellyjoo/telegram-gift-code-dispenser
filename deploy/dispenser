@@ -1,7 +1,7 @@
 #!/bin/sh
 # Runs one dispenser command in a throwaway container of the compose file's `cli` service (spec §6.2).
 # That service has Docker logging switched off, so output that can hold keys never reaches a log file.
-# The current directory is mounted read-only at /work, so `--instructions instructions.txt` works.
+# The current directory is mounted read-only at /work, so `--instructions instructions.md` works.
 # A terminal is attached only when stdin and stdout both are terminals: prompts work over `ssh -t`,
 # and `dispenser export > unclaimed.txt` over `ssh` never mixes stderr into the key file.
 set -eu

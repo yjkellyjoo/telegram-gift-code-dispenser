@@ -55,6 +55,15 @@ describe('claiming a code', () => {
     expect(h.lastTextTo(ALICE)).toContain('\nDocs: https://docs.ethswarm.org/?a=1&amp;b=&lt;2&gt;\n');
   });
 
+  test("the instructions' Markdown is formatted in the code message", async () => {
+    h.close();
+    h = new Harness();
+    writeFileSync(h.instructionsFile, '## Use it\n- Get [Nook](https://example.com/nook) and press **Redeem**');
+    await h.openEvent();
+    await h.say(ALICE, PASSPHRASE);
+    expect(h.lastTextTo(ALICE)).toContain('\n\n<b>Use it</b>\n• Get <a href="https://example.com/nook">Nook</a> and press <b>Redeem</b>\n\n');
+  });
+
   test('a wrong passphrase says how many tries are left', async () => {
     await h.say(ALICE, 'hello?');
     expect(h.lastTextTo(ALICE)).toBe("That's not it. 4 tries left.");
