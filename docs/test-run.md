@@ -1,8 +1,9 @@
-# Dry run before the event
+# Test run before the event
 
 Run this once, a few days before the event, on the Pi.
-Do the README's "Install on the Pi" steps first, except `bot.env` and the first start: this checklist covers them.
-It uses a second bot from BotFather, a throwaway group, and unfunded keys, plus one key funded with a little xDAI so `stats` can count a redemption.
+It uses the event's real bot and real Telegram group, while the group is not yet shared publicly.
+It uses test keys: 12 unfunded keys, plus one key funded with a little xDAI so `stats` can count a redemption.
+At the end the database is deleted, so the real event starts clean; the bot, its token and its place in the group stay as they are.
 Tick each line; stop and fix anything that does not behave as written.
 
 ## Accounts
@@ -11,25 +12,27 @@ You need three Telegram accounts.
 
 - **A** is your admin account, the one whose numeric ID is `ADMIN_USER_ID`.
 - **B** and **C** are two more accounts, each on a phone or desktop client you can use at the same time.
+  Neither may be in the group yet: the test checks what happens when they join.
 
 Keys are handed out lowest ID first, so the first account to claim gets the first key imported.
 B claims first on purpose: B gets the funded key, and B is the claimant `stats` will count.
 
 ## Setup
 
-During the dry run the real paths are used, and `/etc/gift-dispenser/bot.env` holds the TEST bot's token.
-The last section puts the real token back.
-
-- [ ] Create a test bot with BotFather.
-- [ ] Write its token as `BOT_TOKEN` in `/etc/gift-dispenser/bot.env`, with your own `ADMIN_USER_ID` and `TZ` (the README shows the file).
-- [ ] Create a throwaway group, add Rose, and turn its captcha on.
-- [ ] `dispenser init` prints `created /data/dispenser.db`.
+- [ ] Do the README's "Install on the Pi" steps, with the real bot's token in `/etc/gift-dispenser/bot.env`.
+      `dispenser init` prints `created /data/dispenser.db`.
       The CLI output must appear on your screen: the `dispenser` wrapper runs the `cli` service, which has Docker logging switched off.
-- [ ] `docker compose -f /opt/gift-dispenser/compose.yaml up -d`, then `docker compose -f /opt/gift-dispenser/compose.yaml logs -f bot` shows `bot started`.
-- [ ] From A, message the test bot.
+- [ ] `docker compose -f /opt/gift-dispenser/compose.yaml logs -f bot` shows `bot started`.
+- [ ] From A, send `/start` to the bot: it replies "No event is open right now.".
+      This also lets the bot message A, which it needs for admin messages.
+- [ ] In the event's group, Rose is an admin and its captcha is on (`/captcha on`).
 - [ ] Add the bot to the group from A and promote it with every right off: the bot messages A "I'm now an admin in …" with the chat ID.
 - [ ] If the group became a supergroup, the ID in that message starts with `-100`; use that one (spec §15).
-- [ ] Copy an `instructions.txt` into the current directory, then run `dispenser event create --title "Dry run" --group=<id> --opens "<a few minutes ago>" --closes "<this evening>" --instructions instructions.txt --passphrase-generate`, with the window open now, and note the passphrase it prints.
+      Keep this ID: the real event uses it too.
+- [ ] Put `instructions.txt` in the current directory, then run `dispenser event create --title "Test run" --group=<id> --opens "<a few minutes ago>" --closes "<this evening>" --instructions instructions.txt`, with the window open now.
+      It asks for the passphrase twice, so run it on the Pi or over `ssh -t`.
+      Type a test passphrase, not the event's: B and C will learn it.
+      To have the CLI pick three random words instead, add `--passphrase-generate`; it prints them once.
 - [ ] Put the funded key alone in `funded.txt` and import it first: `dispenser import funded.txt --yes`.
 - [ ] Make 12 unfunded keys and import them second: `for i in $(seq 12); do echo "0x$(openssl rand -hex 32)"; done > unfunded.txt`, then `dispenser import unfunded.txt --yes`.
 - [ ] `dispenser status` shows `Claims    0 claimed · 13 left`.
@@ -71,14 +74,17 @@ Do this at least a minute after B's claim, so that claim is outside the burst wi
 - [ ] With B's funded key (it is still in B's chat), send one transaction in a wallet on Gnosis Chain, then `dispenser stats` shows `redeemed 1 (33%)`.
 - [ ] Delete `funded.txt` and `unfunded.txt`.
 
-## Ending the dry run
+## Ending the test run
 
-Do this before the real event, so no test data and no test token remain.
+Do this before the real event, so no test keys, claims or passphrase remain.
+The bot, its token and its admin rights in the group stay.
 
+- [ ] Remove B and C from the group, so they cannot claim a real code at the event.
 - [ ] `docker compose -f /opt/gift-dispenser/compose.yaml down`
-- [ ] `sudo rm /var/lib/gift-dispenser/dispenser.db*`
+- [ ] `sudo sh -c 'rm /var/lib/gift-dispenser/dispenser.db*'`
+      The `sh -c` makes root expand the `*`: your own shell cannot read that directory, so a plain `sudo rm …*` finds nothing.
       This removes only the database files, so the directory keeps its `10001` owner and `0700` mode.
-- [ ] Put the REAL bot token in `/etc/gift-dispenser/bot.env`: `chmod 0600` it, replace `BOT_TOKEN`, then `chmod 0400` it again.
-- [ ] `dispenser init`
-- [ ] `docker compose -f /opt/gift-dispenser/compose.yaml up -d --force-recreate`, so the bot reads the new token.
-- [ ] `docker compose -f /opt/gift-dispenser/compose.yaml logs bot` shows `bot started` with the real bot's username.
+- [ ] `dispenser init` prints `created /data/dispenser.db`.
+- [ ] `docker compose -f /opt/gift-dispenser/compose.yaml up -d`, then `docker compose -f /opt/gift-dispenser/compose.yaml logs bot` shows `bot started`.
+
+The real event then follows the README's "Running an event" table, with the group ID kept above.
