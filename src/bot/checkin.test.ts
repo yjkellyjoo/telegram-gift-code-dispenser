@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { GnosisRpcFake } from '../test/gnosis-rpc-fake.js';
 import { Harness, PASSPHRASE } from '../test/harness.js';
 
 const ALICE = 5001;
@@ -18,7 +19,7 @@ const statsLine = async () => (await h.cli(['stats'])).stdout.split('\n').find((
 
 describe('check-in taps', () => {
   beforeEach(() => {
-    h.fetch = async () => Response.json({ items: [], next_page_params: null });
+    h.fetch = new GnosisRpcFake(() => h.clock.now()).fetch;
   });
 
   test('a tap before the check-in was sent gets an empty answer', async () => {

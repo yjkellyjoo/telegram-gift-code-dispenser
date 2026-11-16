@@ -83,7 +83,7 @@ export class Harness {
       },
       transformers: [this.telegram.transformer, ...(options.transformers ?? [])],
       fetch: (input, init) => this.fetch(input, init),
-      blockscoutUrl: 'https://blockscout.test',
+      gnosisRpcUrl: 'https://rpc.test/',
       sleep: async (ms) => {
         this.sleeps.push(ms);
       },

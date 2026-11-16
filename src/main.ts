@@ -75,7 +75,7 @@ async function runDispenser(argv: string[], config: Config): Promise<number> {
     randomInt: (max) => randomInt(max),
     transformers: [telegramRetry()],
     fetch,
-    blockscoutUrl: config.blockscoutUrl,
+    gnosisRpcUrl: config.gnosisRpcUrl,
     sleep: (ms) => sleep(ms),
   });
   process.stdout.write(result.stdout);

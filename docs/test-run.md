@@ -76,7 +76,7 @@ Do this at least a minute after B's claim, so that claim is outside the burst wi
 - [ ] B sends `/mycode`: it now says codes are no longer stored.
 - [ ] `dispenser checkin send` prints `sent 3 · unreachable 0 · failed 0`; tap an answer in the check-in message on each account.
 - [ ] `dispenser stats` shows `redeemed 0`.
-      Blockscout answers an address with no transactions with an empty list (verified 2026-10-20), so the unfunded accounts count as zero rather than failing.
+      An address with no transactions has nonce 0 at every block, so the unfunded accounts count as zero rather than failing.
 - [ ] With B's funded key (it is still in B's chat), send one transaction in a wallet on Gnosis Chain, then `dispenser stats` shows `redeemed 1 (33%)`.
 - [ ] Delete `funded.txt` and `unfunded.txt`.
 
