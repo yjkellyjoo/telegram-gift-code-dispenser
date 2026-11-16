@@ -18,7 +18,7 @@ export interface CliDeps {
   randomInt: (max: number) => number;
   transformers?: Transformer[];
   fetch: typeof fetch;
-  blockscoutUrl: string;
+  gnosisRpcUrl: string;
   sleep: (ms: number) => Promise<void>;
 }
 

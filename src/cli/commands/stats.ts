@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { BlockscoutError, createBlockscout } from '../../chain/blockscout.js';
+import { createGnosisRpc, GnosisRpcError } from '../../chain/gnosis-rpc.js';
 import { milestones } from '../../chain/milestones.js';
 import { KPI_WINDOW_MS } from '../../core/checkin.js';
 import { attemptTotals } from '../../store/attempts.js';
@@ -18,21 +18,16 @@ export async function stats(env: CommandEnv): Promise<void> {
   const claims = claimedCodes(db, event.id);
   const { tried, everLockedOut } = attemptTotals(db, event.id);
 
-  const chain = createBlockscout({ baseUrl: env.deps.blockscoutUrl, fetch: env.deps.fetch, sleep: env.deps.sleep });
-  let redeemed = 0;
-  let boughtStorage = 0;
-  for (const claim of claims) {
-    let txs;
-    try {
-      txs = await chain.outgoingTransactions(claim.address, claim.claimedAt);
-    } catch (err) {
-      if (err instanceof BlockscoutError) throw new CliError(err.message);
-      throw err;
-    }
-    const result = milestones(txs, claim.claimedAt);
-    if (result.redeemed) redeemed += 1;
-    if (result.boughtStorage) boughtStorage += 1;
+  const rpc = createGnosisRpc({ url: env.deps.gnosisRpcUrl, fetch: env.deps.fetch, sleep: env.deps.sleep });
+  let results;
+  try {
+    results = await milestones(rpc, claims, env.deps.clock.now());
+  } catch (err) {
+    if (err instanceof GnosisRpcError) throw new CliError(err.message);
+    throw err;
   }
+  const redeemed = results.filter((r) => r.redeemed).length;
+  const boughtStorage = results.filter((r) => r.boughtStorage).length;
 
   const count = (answer: CheckinAnswer) => claims.filter((c) => c.checkinAnswer === answer).length;
   const sent = claims.filter((c) => c.checkinStatus !== null).length;

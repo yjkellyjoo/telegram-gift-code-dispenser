@@ -5,7 +5,7 @@ export interface Config {
   adminUserId: number;
   tz: string;
   dataDir: string;
-  blockscoutUrl: string;
+  gnosisRpcUrl: string;
 }
 
 /** Reads bot.env. Throws a message naming the variable that is wrong, never its value. */
@@ -23,6 +23,6 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     adminUserId,
     tz,
     dataDir: env.DATA_DIR ?? '/data',
-    blockscoutUrl: env.BLOCKSCOUT_URL ?? 'https://gnosisscan.io',
+    gnosisRpcUrl: env.GNOSIS_RPC_URL ?? 'https://rpc.gnosischain.com',
   };
 }
