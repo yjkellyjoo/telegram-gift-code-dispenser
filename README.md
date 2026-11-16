@@ -18,7 +18,7 @@ pnpm check    # typecheck, lint, tests
 Run these once from a checkout of this repository, as a user in the `docker` group.
 
 ```sh
-docker build -t gift-dispenser:0.1.0 .
+docker build -t gift-dispenser:0.1.1 .
 sudo mkdir -p /opt/gift-dispenser /etc/gift-dispenser /var/lib/gift-dispenser
 sudo install -m 0644 deploy/compose.yaml /opt/gift-dispenser/compose.yaml
 sudo install -m 0755 deploy/dispenser /usr/local/bin/dispenser

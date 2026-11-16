@@ -1,6 +1,6 @@
 # Installed at /opt/gift-dispenser/compose.yaml (spec §6.2).
 x-dispenser: &dispenser
-  image: gift-dispenser:0.1.0
+  image: gift-dispenser:0.1.1
   user: "10001:10001"
   read_only: true
   tmpfs: [/tmp]
