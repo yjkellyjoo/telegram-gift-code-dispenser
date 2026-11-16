@@ -112,14 +112,14 @@ Accepted risks:
 │  container: gift-dispenser                                       │
 │                                                                  │
 │   bot/   updates from private chats, group status changes        │
-│   cli/   admin commands  ──────────────────────► Blockscout API  │
+│   cli/   admin commands  ──────────────────────► Gnosis RPC      │
 │     │                                                            │
 │     ▼                                                            │
 │   core/      rules: event state, checks, claimOrGet, breaker     │
 │   store/     SQLite: schema, migrations, queries                 │
 │     └── store/bulk  reading all keys (export) and wipe; CLI only │
 │   codes/     parseCodes: bare keys → keys and addresses          │
-│   chain/     Blockscout client: an address's transactions        │
+│   chain/     Gnosis RPC client: nonces, blocks, batch logs       │
 │   clock      injected time source                                │
 │                                                                  │
 │  /data (bind mount of /var/lib/gift-dispenser on the SSD)        │
@@ -137,7 +137,7 @@ Accepted risks:
 | `store/` | SQLite access; the only code that writes SQL | better-sqlite3 |
 | `store/bulk` | Reading every unclaimed key (export) and wiping keys | `store` |
 | `codes/` | `parseCodes(text)` → keys with addresses, or line errors | ethers |
-| `chain/` | Fetches an address's outgoing transactions from Blockscout | HTTP |
+| `chain/` | Reads nonces, block times and PostageStamp `BatchCreated` logs over Gnosis JSON-RPC | HTTP |
 
 A lint rule (`no-restricted-imports`) rejects any import of `store/bulk` from `bot/` or `core/`.
 CI runs lint, so the bot process cannot contain a code path that returns more than the caller's own code.
@@ -169,7 +169,7 @@ Host files:
 
 | Path | Contents | Owner, mode |
 |---|---|---|
-| `/etc/gift-dispenser/bot.env` | `BOT_TOKEN`, `ADMIN_USER_ID`, `TZ`, optional `BLOCKSCOUT_URL` (default `https://gnosisscan.io`, where `gnosis.blockscout.com` now redirects) | The admin's login user, `0400`; Docker Compose reads it on the host as that user |
+| `/etc/gift-dispenser/bot.env` | `BOT_TOKEN`, `ADMIN_USER_ID`, `TZ`, optional `GNOSIS_RPC_URL` (default `https://rpc.gnosischain.com`) | The admin's login user, `0400`; Docker Compose reads it on the host as that user |
 | `/var/lib/gift-dispenser/` | `dispenser.db` | `10001`, `0700` |
 | `/usr/local/bin/dispenser` | Wrapper around `docker compose run --rm bot dispenser …` | `root`, `0755` |
 
@@ -447,8 +447,8 @@ The KPI funnel maps onto three sources:
 | Stage | Source | Definition |
 |---|---|---|
 | Handed out | Bot | Codes claimed |
-| Redeemed | Chain | First transaction sent from the code's address after `claimed_at`, within 30 days |
-| Bought storage | Chain | First transaction from the code's address to the PostageStamp contract after `claimed_at`, within 30 days |
+| Redeemed | Chain | Any transaction sent from the code's address after `claimed_at`, within 30 days |
+| Bought storage | Chain | A postage batch created with the code's address as owner after `claimed_at`, within 30 days |
 | First upload | Check-in | The claimant answers "Yes" |
 
 No metrics output ever lists individual accounts or addresses.
@@ -467,15 +467,16 @@ Non-members and people turned away by a pause or an empty pool leave no record.
 
 ### 10.2 On-chain activity
 
-`dispenser stats` fetches each claimed address's outgoing transactions from Gnosis Chain's Blockscout API when it runs.
-It sends at most 5 requests per second and waits on 429 responses.
+`dispenser stats` reads Gnosis Chain over JSON-RPC (`GNOSIS_RPC_URL`) when it runs.
+Blockscout's Gnosis API was used until 2026-11: `gnosis.blockscout.com` now redirects to gnosisscan.io, which serves scripts a Cloudflare challenge, and Etherscan's API needs a paid plan for Gnosis.
+It waits 100 ms between requests and waits on 429 responses; 47 claims took about 240 requests and 100 s on the Pi (2026-11-16).
 
-- Only transactions sent *from* the address count; the incoming funding transaction does not.
-- Only transactions after `claimed_at` and within 30 days of it count, so running `stats` on day 45 still gives the 30-day figure.
-- "Bought storage" means a transaction to the PostageStamp contract (`0x45a1502382541Cd610CC9068e88727426b696293`).
-  Buying a postage batch is required before any upload.
+- Each claim's window runs from the last block at or before `claimed_at` to the last block at or before 30 days later (or the head, while in progress), found by searching block timestamps. Running `stats` on day 45 still gives the 30-day figure.
+- "Redeemed" means the address's nonce is higher at the window's end than at its start. The nonce counts only transactions sent *from* the address, reverted ones included; the incoming funding transaction does not count.
+- "Bought storage" means a `BatchCreated` log from the PostageStamp contract (`0x45a1502382541Cd610CC9068e88727426b696293`) inside the window whose `owner` is the address. Bee sets the owner to its own wallet, which is the code's address once the key is imported.
+  Buying a postage batch is required before any upload. `stats` fetches these logs once for all claims, in 50,000-block ranges.
 
-Known blind spot: someone who moves the funds to their own Bee wallet and buys storage from there counts as redeemed, but not as having bought storage.
+Known blind spots: someone who moves the funds to their own Bee wallet and buys storage from there counts as redeemed, but not as having bought storage. A batch bought from the code's address for another owner does not count; one bought by someone else for the code's address does.
 The check-in covers that case.
 
 Uploads cannot be seen on-chain.
@@ -691,14 +692,14 @@ Tests drive the code only through these three agreed entry points:
 | Seam | Entry point | Faked boundaries | Real |
 |---|---|---|---|
 | Bot | `handleUpdate(update)` on a bot built over a temp data directory | Telegram transport, clock | Core, SQLite |
-| CLI | `runCli(argv, stdin)` → stdout, stderr, exit code | Telegram, Blockscout, clock, randomness | Everything else |
+| CLI | `runCli(argv, stdin)` → stdout, stderr, exit code | Telegram, Gnosis RPC, clock, randomness | Everything else |
 | Import parser | `parseCodes(text)` → keys with addresses, or line errors | none | all |
 
 - "Restart" in a test means building a new bot over the same data directory.
 - The Telegram fake intercepts grammY's outgoing calls at the transport.
   Tests check what users would see (which code, which message), not call sequences.
   Fake updates and `getChatMember` results are complete, real-shaped payloads built from grammY's types.
-- The Blockscout fake serves complete, real-shaped responses captured from the live API.
+- The Gnosis RPC fake serves real-shaped JSON-RPC answers over a chain with uneven block times, and refuses `eth_getLogs` over more than 100,000 blocks.
 - Expected values come from outside the code under test.
   Examples: the well-known Hardhat account #0 key mapped to `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266`, literal checksums, and a frozen copy of a real dapp export.
 
@@ -722,7 +723,7 @@ Tests drive the code only through these three agreed entry points:
 | Import | Parser: Hardhat #0 → its literal address; the frozen dapp export → its literal addresses; an invalid key, a duplicate, or the table header → line errors without content; CLI: a dry run writes nothing; a key already in the database aborts the import | Parser regressions; partial imports |
 | Check-in once | CLI: `checkin send` twice → each claimant gets one message; a 403 → `unreachable` | Status written after the send |
 | Check-in taps | Bot: a claimant's tap is stored, and a later tap replaces it; a tap after day 30 → "closed", not stored | The window off by one; answers stored for the wrong account |
-| Stats | CLI with the Blockscout fake: transactions before the claim, after day 30, or incoming → not counted; a transaction to PostageStamp → bought storage; the output contains no address or account ID | Counting incoming or out-of-window transactions |
+| Stats | CLI with the Gnosis RPC fake: transactions or batches before the claim or after day 30 → not counted; a reverted `createBatch` → redeemed only; a batch owned by the address → bought storage; the output and errors contain no address or account ID | Counting out-of-window transactions |
 
 Before a test file is called done, a mutation check runs: change a constant, flip a branch, or drop a side effect, and confirm that some test fails.
 
@@ -740,8 +741,8 @@ Each item has a fallback, so none blocks the design.
 | Telegram renders `<code>` nested inside `<tg-spoiler>` | Did not hold (test run, 2026-10-23): the key showed as monospace with no spoiler, as the Bot API says spoiler "can contain and can be part of any other entities, except pre and code". The key is now `<tg-spoiler>` only, with a `copy_text` button that copies it (§8.6) |
 | A member who passed Rose's captcha has status `member` | Also accept `restricted` when both `is_member` and `can_send_messages` are true |
 | Promoting the bot in a basic group sends a `my_chat_member` update from the new supergroup | The bot also reports the new ID from the `migrate_to_chat_id` service message |
-| `0x45a1502382541Cd610CC9068e88727426b696293` is the current PostageStamp contract on Gnosis | Verified 2026-10-20: Blockscout labels it "PostageStamp v2.1", and it receives `createBatch` calls daily |
-| Blockscout's Gnosis API serves an address's outgoing transactions within its rate limits | Verified 2026-10-20: `/api/v2/addresses/<address>/transactions?filter=from` returns 50 per page with `next_page_params`, and allows 180 requests per window. Otherwise use RPC only: `eth_getTransactionCount` gives "redeemed" at the time `stats` runs, without the 30-day window or "bought storage", and the report says so |
+| `0x45a1502382541Cd610CC9068e88727426b696293` is the current PostageStamp contract on Gnosis | Verified 2026-10-20: Blockscout labels it "PostageStamp v2.1", and it receives `createBatch` calls daily; 2026-11-16: about 10,000 `BatchCreated` logs a month |
+| The public Gnosis RPC serves historical nonces and logs for the last 30+ days | Verified 2026-11-16 on `rpc.gnosischain.com`: `eth_getTransactionCount` at a block 600,000 back, and `eth_getLogs` over 500,000 blocks. Blockscout's API (verified 2026-10-20) stopped serving scripts in 2026-11 |
 
 ## 16. Future to-dos
 
